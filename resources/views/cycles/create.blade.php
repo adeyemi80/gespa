@@ -1,0 +1,31 @@
+@extends('tableau.neutre')
+
+@section('content')
+<button 
+    onclick="if (window.history.length > 1) { history.back(); } else { window.location.href='{{ route('tableau.accueil') }}'; }" 
+    class="btn btn-secondary">
+    ⬅️ Retour
+</button>
+<div class="container">
+
+    <h3>➕ Ajouter un cycle</h3>
+
+    <form action="{{ route('cycles.store') }}" method="POST">
+        @csrf
+
+        <div class="mb-3">
+            <label>Nom du cycle</label>
+            <input type="text" name="nom" class="form-control" required>
+        </div>
+
+        <div class="mb-3">
+            <label>Ordre</label>
+            <input type="number" name="ordre" class="form-control">
+        </div>
+
+        <button class="btn btn-success">💾 Enregistrer</button>
+        <a href="{{ route('cycles.index') }}" class="btn btn-secondary">Retour</a>
+    </form>
+
+</div>
+@endsection
