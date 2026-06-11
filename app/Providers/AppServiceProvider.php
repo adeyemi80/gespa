@@ -47,7 +47,13 @@ public function boot()
 
         $view->with('notificationsCount', $count);
     });
+
 }
+
+
+// Dans app/Providers/AppServiceProvider.php
+// Ajoutez ceci dans la méthode boot()
+
 
 }
 

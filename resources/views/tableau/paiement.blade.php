@@ -71,7 +71,7 @@
 
             @php
                 $cards2 = [
-                    ['route'=>'paiements.fraisFilter','color'=>'info','icon'=>'journal-bookmark-fill','title'=>'SUIVI DES FRAIS SCOLAIRES'],
+                    ['route'=>'paiements.fraisFilter','color'=>'info','icon'=>'journal-bookmark-fill','title'=>'SUIVI DES FRAIS DE SCOLAIRES'],
                     
                 ];
             @endphp
