@@ -18,6 +18,7 @@ class CheckSessionExpired
             'serviceReadp',
             'serviceReads',
             'registre',
+            'check-session', // ← important
         ];
 
         if (!auth()->check() && !$request->is(...$publicRoutes)) {
