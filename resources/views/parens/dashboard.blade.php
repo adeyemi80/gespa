@@ -115,44 +115,116 @@
 
         <div class="alert alert-warning text-center py-5">
 
-            👶 Aucun enfant inscrit trouvé.
+            👶 Aucun enfant inscrit trouvé pour cette année scolaire.
 
         </div>
 
     @else
 
-    {{-- FILTRE TRIMESTRE --}}
+    {{-- FILTRES : ANNÉE / TRIMESTRE / ENFANT --}}
     <form method="GET" class="mb-4">
 
-        <div class="d-flex align-items-center gap-2">
+        <div class="d-flex flex-wrap align-items-center gap-3">
 
-            <label class="fw-bold">
-                📅 Trimestre :
-            </label>
+            {{-- ANNÉE --}}
+            <div class="d-flex align-items-center gap-2">
 
-            <select name="trimestre"
-                    class="form-select w-auto"
-                    onchange="this.form.submit()">
+                <label class="fw-bold mb-0">
+                    🗓️ Année :
+                </label>
 
-                @foreach([1,2,3] as $t)
+                <select name="annee_id"
+                        class="form-select w-auto"
+                        onchange="this.form.submit()">
 
-                    <option value="{{ $t }}"
-                        {{ $trimestre == $t ? 'selected' : '' }}>
+                    @foreach($annees as $a)
 
-                        Trimestre {{ $t }}
+                        <option value="{{ $a->id }}"
+                            {{ $annee_id == $a->id ? 'selected' : '' }}>
 
-                    </option>
+                            {{ $a->nom }}
 
-                @endforeach
+                        </option>
 
-            </select>
+                    @endforeach
+
+                </select>
+
+            </div>
+
+            {{-- TRIMESTRE --}}
+            <div class="d-flex align-items-center gap-2">
+
+                <label class="fw-bold mb-0">
+                    📅 Trimestre :
+                </label>
+
+                <select name="trimestre_id"
+                        class="form-select w-auto"
+                        onchange="this.form.submit()">
+
+                    @foreach([1,2,3] as $t)
+
+                        <option value="{{ $t }}"
+                            {{ $trimestre == $t ? 'selected' : '' }}>
+
+                            Trimestre {{ $t }}
+
+                        </option>
+
+                    @endforeach
+
+                </select>
+
+            </div>
+
+            {{-- ENFANT --}}
+            <div class="d-flex align-items-center gap-2">
+
+                <label class="fw-bold mb-0">
+                    👧 Enfant :
+                </label>
+
+                <select name="eleve_id"
+                        class="form-select w-auto"
+                        onchange="this.form.submit()">
+
+                    @foreach($inscriptions as $insc)
+
+                        <option value="{{ $insc->eleve_id }}"
+                            {{ $eleve_id == $insc->eleve_id ? 'selected' : '' }}>
+
+                            {{ $insc->eleve->nom }} {{ $insc->eleve->prenom }}
+                            ({{ $insc->classe->nom ?? 'N/A' }})
+
+                        </option>
+
+                    @endforeach
+
+                </select>
+
+            </div>
 
         </div>
 
     </form>
 
-    {{-- ENFANTS --}}
-    @foreach($inscriptions as $inscription)
+    {{-- ENFANT SÉLECTIONNÉ --}}
+    @php
+
+        $inscription = $inscriptions->firstWhere('eleve_id', $eleve_id);
+
+    @endphp
+
+    @if(!$inscription)
+
+        <div class="alert alert-warning text-center py-5">
+
+            👶 Aucun enfant sélectionné.
+
+        </div>
+
+    @else
 
         @php
 
@@ -187,6 +259,8 @@
 
                         Classe :
                         {{ $inscription->classe->nom ?? 'N/A' }}
+                        —
+                        Année : {{ $annee->nom ?? 'N/A' }}
 
                     </small>
 
@@ -311,13 +385,19 @@
                                     {{-- MENTION --}}
                                     <div>
 
-                                        @if($m >= 18)
+                                        @if($m === null)
+
+                                            <span class="badge bg-secondary">
+                                                — Aucune note
+                                            </span>
+
+                                        @elseif($m >= 18)
 
                                             <span class="badge bg-success">
                                                 🟢 Excellent
                                             </span>
 
-                                            @elseif($m >= 16)
+                                        @elseif($m >= 16)
 
                                             <span class="badge bg-primary">
                                                 🔵  Très Bien
@@ -464,13 +544,102 @@
 
                 </div>
 
+                {{-- CONDUITES --}}
+                @if(isset($conduites) && $conduites->isNotEmpty())
+
+                    <div class="row mt-4">
+
+                        <div class="col-12">
+
+                            <div class="card border-0 shadow-sm">
+
+                                <div class="card-body">
+
+                                    <h5 class="fw-bold mb-3">
+                                        🧭 Conduite
+                                    </h5>
+
+                                    <ul class="list-group list-group-flush">
+
+                                        @foreach($conduites as $conduite)
+
+                                            <li class="list-group-item">
+                                                {{ $conduite->note_conduite ?? $conduite->commentaire ?? '—' }}
+                                            </li>
+
+                                        @endforeach
+
+                                    </ul>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                @endif
+
+                {{-- BULLETINS --}}
+                @if(isset($bulletins) && $bulletins->isNotEmpty())
+
+                    <div class="row mt-4">
+
+                        <div class="col-12">
+
+                            <div class="card border-0 shadow-sm">
+
+                                <div class="card-body">
+
+                                    <h5 class="fw-bold mb-3">
+                                        📄 Bulletins
+                                    </h5>
+
+                                    <ul class="list-group list-group-flush">
+
+                                        @foreach($bulletins as $bulletin)
+
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+
+                                                Bulletin —
+                                                {{ $bulletin->trimestre_id ?? '' }}
+
+                                                @if(!empty($bulletin->fichier))
+
+                                                    <a href="{{ asset('storage/'.$bulletin->fichier) }}"
+                                                       target="_blank"
+                                                       class="btn btn-sm btn-outline-primary">
+
+                                                        📥 Télécharger
+
+                                                    </a>
+
+                                                @endif
+
+                                            </li>
+
+                                        @endforeach
+
+                                    </ul>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                @endif
+
                 @endif
 
             </div>
 
         </div>
 
-    @endforeach
+    @endif
 
     @endif
 

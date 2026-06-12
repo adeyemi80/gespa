@@ -11,6 +11,7 @@ use App\Models\Bulletin;
 use App\Models\Conduite;
 use App\Models\Note;
 use App\Models\Moyenne;
+use App\Models\Annee;
 
 class ParenDashboardController extends Controller
 {
@@ -30,41 +31,68 @@ class ParenDashboardController extends Controller
 
         // Aucun parent trouvé
         if (!$paren) {
-
             return view('parens.dashboard', [
-                'inscriptions'        => collect(),
-                'messages'            => collect(),
+                'inscriptions'       => collect(),
+                'messages'           => collect(),
                 'notificationsCount' => 0,
-                'moyennes'            => collect(),
-                'conduites'           => collect(),
-                'notes'               => collect(),
-                'trimestre'           => 1,
-                'paren'               => null,
+                'moyennes'           => collect(),
+                'conduites'          => collect(),
+                'notes'              => collect(),
+                'bulletins'          => collect(),
+                'annees'             => collect(),
+                'annee'              => null,
+                'trimestre'          => 1,
+                'eleve_id'           => null,
+                'paren'              => null,
             ]);
         }
 
-        // Inscriptions des enfants
-        $inscriptions = $paren->inscriptions()
-            ->with([
-                'eleve',
-                'classe',
-            ])
-            ->get();
+        /*
+        |--------------------------------------------------------------------------
+        | ANNÉE SCOLAIRE SÉLECTIONNÉE
+        |--------------------------------------------------------------------------
+        */
+        $annees = Annee::orderByDesc('id')->get();
 
-        // Trimestre sélectionné
-        $trimestre = $request->get('trimestre', 1);
+        $annee_id = $request->get('annee_id', $annees->first()?->id);
+        $annee    = Annee::find($annee_id);
 
         /*
         |--------------------------------------------------------------------------
-        | NOTES DES MATIÈRES
+        | TRIMESTRE SÉLECTIONNÉ
         |--------------------------------------------------------------------------
         */
+        $trimestre = $request->get('trimestre_id', 1);
 
+        /*
+        |--------------------------------------------------------------------------
+        | INSCRIPTIONS DES ENFANTS (filtrées par année)
+        |--------------------------------------------------------------------------
+        */
+       
+$inscriptions = $paren->inscriptions()
+    ->with(['eleve', 'classe'])
+    ->where('inscriptions.annee_id', $annee_id)
+    ->get();
+
+        /*
+        |--------------------------------------------------------------------------
+        | ÉLÈVE SÉLECTIONNÉ (optionnel, sinon premier enfant)
+        |--------------------------------------------------------------------------
+        */
+        $eleve_id = $request->get('eleve_id', $inscriptions->first()?->eleve_id);
+
+        // Inscription correspondant à l'élève + année sélectionnés
+        $inscriptionCourante = $inscriptions->firstWhere('eleve_id', $eleve_id);
+        $inscriptionId       = $inscriptionCourante?->id;
+
+        /*
+        |--------------------------------------------------------------------------
+        | NOTES DES MATIÈRES (annee + trimestre + élève)
+        |--------------------------------------------------------------------------
+        */
         $notes = Note::with('matiere')
-            ->whereIn(
-                'inscription_id',
-                $inscriptions->pluck('id')
-            )
+            ->where('inscription_id', $inscriptionId)
             ->where('trimestre_id', $trimestre)
             ->orderBy('matiere_id')
             ->get()
@@ -72,24 +100,39 @@ class ParenDashboardController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | MOYENNES GÉNÉRALES
+        | MOYENNES GÉNÉRALES (annee + trimestre + élève)
         |--------------------------------------------------------------------------
         */
-
-        $moyennes = Moyenne::whereIn(
-                'inscription_id',
-                $inscriptions->pluck('id')
-            )
+        $moyennes = Moyenne::where('inscription_id', $inscriptionId)
             ->where('trimestre_id', $trimestre)
             ->get()
             ->keyBy('inscription_id');
 
         /*
         |--------------------------------------------------------------------------
-        | MESSAGES RÉCENTS
+        | CONDUITES (annee + trimestre + élève)
         |--------------------------------------------------------------------------
         */
+        $conduites = Conduite::where('inscription_id', $inscriptionId)
+            ->where('trimestre_id', $trimestre)
+            ->latest()
+            ->get();
 
+        /*
+        |--------------------------------------------------------------------------
+        | BULLETINS (annee + trimestre + élève)
+        |--------------------------------------------------------------------------
+        */
+        $bulletins = Bulletin::where('inscription_id', $inscriptionId)
+            ->where('trimestre_id', $trimestre)
+            ->latest()
+            ->get();
+
+        /*
+        |--------------------------------------------------------------------------
+        | MESSAGES RÉCENTS (liés au parent, indépendant de l'élève)
+        |--------------------------------------------------------------------------
+        */
         $messages = MessageParent::where('paren_id', $paren->id)
             ->latest()
             ->limit(5)
@@ -97,53 +140,18 @@ class ParenDashboardController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | NOTIFICATIONS NON LUES
+        | NOTIFICATIONS NON LUES (liées au parent)
         |--------------------------------------------------------------------------
         */
-
         $notificationsCount = NotificationParent::where('paren_id', $paren->id)
             ->where('lu', false)
             ->count();
 
         /*
         |--------------------------------------------------------------------------
-        | CONDUITES
-        |--------------------------------------------------------------------------
-        */
-
-        $conduites = Conduite::whereHas(
-                'inscription.paren',
-                function ($q) use ($paren) {
-
-                    $q->where('parens.id', $paren->id);
-                }
-            )
-            ->latest()
-            ->limit(5)
-            ->get();
-
-        /*
-        |--------------------------------------------------------------------------
-        | BULLETINS
-        |--------------------------------------------------------------------------
-        */
-
-        $bulletins = Bulletin::whereHas(
-                'inscription.paren',
-                function ($q) use ($paren) {
-
-                    $q->where('parens.id', $paren->id);
-                }
-            )
-            ->latest()
-            ->get();
-
-        /*
-        |--------------------------------------------------------------------------
         | RETOUR VUE
         |--------------------------------------------------------------------------
         */
-
         return view('parens.dashboard', compact(
             'inscriptions',
             'messages',
@@ -152,7 +160,11 @@ class ParenDashboardController extends Controller
             'conduites',
             'notes',
             'bulletins',
+            'annees',
+            'annee_id',
+            'annee',
             'trimestre',
+            'eleve_id',
             'paren'
         ));
     }

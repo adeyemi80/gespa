@@ -344,7 +344,7 @@
                     </div>
                 </button>
 
-                <ul class="navbar-nav ms-auto">
+                <!--<ul class="navbar-nav ms-auto">
                     @auth
                     <li class="nav-item me-3">
                         <a class="nav-link position-relative" href="#">
@@ -358,7 +358,7 @@
                     </li>
                     @endauth
                     <li class="nav-item dropdown">...</li>
-                </ul>
+                </ul>-->
 
                 @auth
                 <div class="dropdown">
