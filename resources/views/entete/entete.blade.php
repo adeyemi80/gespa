@@ -111,19 +111,13 @@
                           <a class="nav-link" href="/journee/show">Atelier</a>
                         </li>
                     </ul>
-                  </li>
-            <li class="nav-item">
-              <a class="nav-link text-white" href="/register">Enregistrement</a>
-            </li>-->
-            <li class="nav-item">
-              <a class="nav-link text-white" href="/medias">LES MEDIAS</a>
-            </li>
+                  </li>-->
+           
+
             <li class="nav-item">
               <a class="nav-link text-white" href="/login">&#128273; Connexion</a>
             </li>
-           <!-- <li class="nav-item">
-              <a class="nav-link text-white" href="/tests">Banque d'épreuves</a>
-            </li>-->
+          
             <li class="nav-item">
               <a class="nav-link text-white" href="/contacts/create">Contactez-nous</a>
             </li>

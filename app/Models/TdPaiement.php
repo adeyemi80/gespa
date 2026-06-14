@@ -7,12 +7,27 @@ use Illuminate\Database\Eloquent\Model;
 
 class TdPaiement extends Model
 {
-    use HasFactory;
-    protected $fillable = ['td_participation_id', 'montant', 'paye', 'type_frais'];
+    protected $fillable = [
+        'eleve_id',
+        'annee_id',
+        'montant',
+        'date_paiement',
+        'reference',
+        'observation',
+    ];
 
+    protected $casts = [
+        'date_paiement' => 'date',
+        'montant'       => 'float',
+    ];
 
-    public function participation()
+    public function eleve()
     {
-        return $this->belongsTo(TdParticipation::class, 'td_participation_id');
+        return $this->belongsTo(Eleve::class);
+    }
+
+    public function annee()
+    {
+        return $this->belongsTo(Annee::class);
     }
 }

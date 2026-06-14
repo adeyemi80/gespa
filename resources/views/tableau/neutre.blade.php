@@ -343,23 +343,7 @@
                         <span id="themeIcon">☀️</span>
                     </div>
                 </button>
-
-                <!--<ul class="navbar-nav ms-auto">
-                    @auth
-                    <li class="nav-item me-3">
-                        <a class="nav-link position-relative" href="#">
-                            🔔
-                            @if(auth()->user()->unreadNotifications->count() > 0)
-                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                                    {{ auth()->user()->unreadNotifications->count() }}
-                                </span>
-                            @endif
-                        </a>
-                    </li>
-                    @endauth
-                    <li class="nav-item dropdown">...</li>
-                </ul>-->
-
+                
                 @auth
                 <div class="dropdown">
                     <button class="header-btn glass-effect d-flex align-items-center gap-3 p-3 text-light border-0 bg-transparent"

@@ -80,6 +80,14 @@ use App\Http\Controllers\MediaController;
 use App\Http\Controllers\RecuPaiementController;
 use App\Livewire\PaiementMultiple;
 use App\Http\Livewire\AnnulationPassage;
+use App\Http\Controllers\TdRecapPdfController;
+use App\Http\Controllers\TdSeanceController;
+use App\Http\Controllers\TdTarifController;
+use App\Http\Controllers\TdPresenceController;
+use App\Http\Controllers\TdPaiementController;
+
+
+
 
 
 
@@ -461,6 +469,16 @@ Route::get('/examens/{id}/export-pdf', [ExamenBlancController::class, 'exportPdf
 Route::get('/examens/{id}/classement', [ExamenBlancController::class, 'classement'])->name('examens.classement');
 Route::get('/examens/{id}/notes/pdf', [ExamenBlancController::class, 'notesPdf'])->name('examens.notes.pdf');
 Route::get('/roles/{role}/pdf', [RoleController::class, 'exportPdf'])->name('roles.pdf');
+// routes/web.php
+
+
+Route::get('td-presences/{seance}', [TdPresenceController::class, 'show'])->name('td-presences.show');
+Route::resource('td-tarifs', App\Http\Controllers\TdTarifController::class);
+Route::resource('td-seances', App\Http\Controllers\TdSeanceController::class);
+Route::resource('td-paiements', App\Http\Controllers\TdPaiementController::class);
+Route::get('/td/recap/pdf', [TdRecapPdfController::class, 'export'])->name('td.recap.pdf');
+Route::get('/td', [TdController::class, 'index'])->name('td.index');
+Route::get('/td/dirige', [TdController::class, 'dirige'])->name('td.dirige');
 
 
 
@@ -533,51 +551,6 @@ Route::resource('tests', App\Http\Controllers\TestController::class)->where(['te
    //Route::middleware(['auth', 'role:admin'])
     //->group(function () {
    // });
-
-// Préfixe "td" pour toutes les routes de TD
-Route::prefix('td')->group(function () {
-
-    // 1️⃣ Page d’accueil – sélection classe + année
-    Route::get('/', [TdController::class, 'index'])->name('td.index');//->middleware(['auth', 'verified']);
-    // 2️⃣ Charger les élèves d’une classe pour TD
-    Route::post('/charger-classe', [TdController::class, 'chargerClasse'])->name('td.charger-classe');
-    // 3️⃣ Enregistrer les participants du jour
-    Route::post('/enregistrer-participants', [TdController::class, 'enregistrerParticipants'])->name('td.enregistrer-participants');
-    // 4️⃣ Afficher participants + frais TD
-    Route::get('/paiements/{classe_id}', [TdController::class, 'paiements'])->name('td.paiements');
-    // 5️⃣ Enregistrer paiements
-    Route::post('/enregistrer-paiements', [TdController::class, 'enregistrerPaiements'])->name('td.enregistrer-paiements');
-    // 6️⃣ Situation cumulée par élève (JSON)
-    Route::get('/situation/{inscription_id}', [TdController::class, 'situationEleve'])->name('td.situation-eleve');
-});
-Route::get('/td/export-pdf/{classe_id}', [TdController::class, 'exportPdf'] )->name('td.export.pdf');
-
-Route::get('/td/export/pdf/{classe_id}', function($classe_id){
-
-    $inscriptions = \App\Models\Inscription::with(['eleve', 'tdParticipations.paiements'])
-        ->where('classe_id', $classe_id)
-        ->get();
-
-    $data = [];
-    foreach ($inscriptions as $insc) {
-        $totalPaye = $insc->tdParticipations->sum(function($p){
-            return $p->paiements->where('paye', true)->sum('montant');
-        });
-        $totalNonPaye = $insc->tdParticipations->sum(function($p){
-            return $p->paiements->where('paye', false)->sum('montant');
-        });
-
-        $data[] = [
-            'nom' => $insc->eleve->nom,
-            'total_paye' => $totalPaye,
-            'total_non_paye' => $totalNonPaye
-        ];
-    }
-
-    $pdf = Pdf::loadView('td.export_pdf', ['data' => $data]);
-
-    return $pdf->download('td_paiements.pdf');
-})->name('td.export.pdf');
 // Récupérer les frais pour une inscription donnée
 Route::get('/inscriptions/{inscription}/frais', [PaiementController::class, 'getFraisParInscription']);
 

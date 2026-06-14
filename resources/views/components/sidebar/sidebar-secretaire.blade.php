@@ -18,12 +18,12 @@
                 <i class="bi bi-people me-2"></i> PAIEMENTS
             </a>
         </li>
-       {{-- <li>
-            <a href="{{ route('tableau.bulletin') }}" class="nav-link text-white">
-                <i class="bi bi-book me-2"></i> BULLETINS
+        {{--<li>
+            <a href="{{ route('td.dirige') }}" class="nav-link text-white">
+                <i class="bi bi-book me-2"></i> LES TRAVAUX DIRIGES
             </a>
         </li>
-        <li>
+         <li>
             <a href="{{ route('tableau.examen') }}" class="nav-link text-white">
                 <i class="bi bi-book me-2"></i> EXAMENS BLANCS
             </a>

@@ -11,16 +11,18 @@
 </button>
 <div class="container-fluid py-3 h-100">
     <div class="dashboard-scroll">
-         {{-- 🟩 GROUPE 1 : NOTES & PÉDAGOGIE --}}
-        <h6 class="section-title">📘 Notes & Pédagogie</h6>
+
+        {{-- 🟦 GROUPE 1 : BULLETINS--}}
+        <h6 class="section-title">📥 GESTION DES TRAVAUS DIRIGES</h6>
         <div class="row g-3 mb-4">
 
             @php
                 $cards2 = [
-                    ['route'=>'td.dirige','color'=>'primary','icon'=>'journal-bookmark-fill','title'=>'TRAVAUX DIRIGES'],
-                    ['route'=>'fiches.index','color'=>'info','icon'=>'file-text','title'=>'FICHE DE NOTES PAR MATIERE'],
-                    ['route'=>'fiches.formulaire','color'=>'info','icon'=>'files','title'=>' FICHES DE NOTES DE CLASSE'],
-                     ['route'=>'tests.importForm','color'=>'info','icon'=>'files','title'=>' IMPORTATION DES EPREUVES'],
+                    
+                    ['route'=>'td-seances.create','color'=>'info','icon'=>'file-earmark-arrow-up','title'=>' CREATION DES SEANCES DE TD'],
+                    ['route'=>'td-seances.index','color'=>'info','icon'=>'file-text','title'=>'LES SEANCES DE TD'],
+                    ['route'=>'td.index','color'=>'info','icon'=>'files','title'=>'PAIEMENTS DES FRAIS DE TD'],
+                    ['route'=>'td-tarifs.create','color'=>'info','icon'=>'files','title'=>'GESTION DES TARIFS DE TD'],
                 ];
             @endphp
 
@@ -38,8 +40,33 @@
             @endforeach
         </div>
 
-        {{-- 🟥 GROUPE 2 : FINANCES & GESTION --}}
-        {{--<h6 class="section-title">💰 Finances </h6>
+         {{-- 🟩 GROUPE 2 : NOTES & PÉDAGOGIE 
+        <h6 class="section-title">📘 Notes & Pédagogie</h6>--}}
+        <div class="row g-3 mb-4">
+
+            @php
+                $cards2 = [
+                    ['route'=>'td-paiements.index','color'=>'primary','icon'=>'journal-bookmark-fill','title'=>'LES PAIEMENTS DES FRAIS DE TD'],
+                    
+                ];
+            @endphp
+
+            @foreach($cards2 as $c)
+                <div class="col-xl-3 col-lg-4 col-md-6">
+                    <a href="{{ route($c['route']) }}" class="text-decoration-none">
+                        <div class="card dashboard-card bg-{{ $c['color'] }} text-white">
+                            <div class="card-body">
+                                <i class="bi bi-{{ $c['icon'] }} dashboard-icon"></i>
+                                <h6 class="dashboard-title">{{ $c['title'] }}</h6>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            @endforeach
+        </div>
+
+        {{-- 🟥 GROUPE 3 : FINANCES & GESTION 
+        <h6 class="section-title">💰 Finances </h6>
         <div class="row g-3 mb-3">
 
             @php

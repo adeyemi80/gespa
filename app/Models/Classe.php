@@ -10,6 +10,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Classe extends Model
 {
     use HasFactory;
+    protected $fillable = [
+        'nom',
+        'niveau',
+         'cycle_id',
+         'ordre',
+         'rang'
+
+    ];
 
     public function annees()
 {
@@ -41,11 +49,7 @@ public function cycle()
     { 
     return $this->hasMany(Inscription::class, 'classe_id'); 
     }
-    // App\Models\Classe.php
-/**public function matieres()
-{
-    return $this->belongsToMany(Matiere::class, 'classe_matiere', 'classe_id', 'matiere_id');
-}*/
+ 
 public function matieres()
 {
     return $this->belongsToMany(
@@ -60,12 +64,6 @@ public function matieres()
     return $this->hasMany(Sujet::class, 'classe_id'); 
     }
 
-    protected $fillable = [
-        'nom',
-        'niveau',
-         'cycle_id'
-
-    ];
 public function prochaineClasse()
     {
         return Classe::where('niveau', $this->niveau + 1)->first();
