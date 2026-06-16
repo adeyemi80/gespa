@@ -68,8 +68,8 @@
 
             @php
                 $cards2 = [
-                ['route'=>'notes.import.index','color'=>'info','icon'=>'clipboard-check','title'=>'IMPORTION SELECTIVE DE NOTES'],
-                ['route'=>'notes.saisie-import','color'=>'info','icon'=>'clipboard-check','title'=>'IMPORTION SELECTIVE DE NOTES'],
+                ['route'=>'notes.import.index','color'=>'info','icon'=>'clipboard-check','title'=>'IMPORTATION SELECTIVE DE NOTES'],
+                ['route'=>'notes.saisie-import','color'=>'info','icon'=>'clipboard-check','title'=>'IMPORTATION SELECTIVE DE NOTES'],
                     
                
                 ];

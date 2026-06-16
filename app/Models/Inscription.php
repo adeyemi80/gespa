@@ -124,19 +124,21 @@ public function inscriptionFrais()
     {
         return $this->hasMany(InscriptionFrais::class);
     }
-    protected static function boot()
+    // app/Models/Inscription.php
+
+protected static function boot()
 {
     parent::boot();
 
     static::saving(function ($inscription) {
         if ($inscription->moyenne_annuelle !== null) {
-            $inscription->decision = $inscription->moyenne_annuelle >= 10 
-                ? 'Admis' 
-                : 'Redouble';
+            // ✅ Valeurs exactes acceptées par l'enum PostgreSQL
+            $inscription->decision = $inscription->moyenne_annuelle >= 10
+                ? 'passé'      // ← avec accent, minuscule
+                : 'redoublé';  // ← avec accent, minuscule
         }
     });
 }
-
 
 public function moyenne()
 {

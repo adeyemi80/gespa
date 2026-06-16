@@ -79,7 +79,7 @@ class TdPresenceManager extends Component
 
         $this->seances = TdSeance::where('annee_id', $this->annee_id)
             ->where('classe_id', $this->classe_id)
-            ->orderByDesc('date')
+            ->orderBy('date') //Date par ordre descendant: ordreByDesc('date')
             ->get();
 
         $this->seance_id = $this->seances->first()?->id;

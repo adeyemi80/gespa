@@ -11,113 +11,171 @@ use App\Models\Classe;
 class CalculerBulletinAction
 {
     public function execute(int $inscriptionId, int $trimestreId, array $statsClasse = []): array
-    {
-        $inscription = Inscription::with([
-            'eleve',
-            'classe.matieres',
-            'annee'
-        ])->findOrFail($inscriptionId);
+{
+    $inscription = Inscription::with([
+        'eleve',
+        'classe.matieres',
+        'annee'
+    ])->findOrFail($inscriptionId);
 
-        $moyenne = Moyenne::where('inscription_id', $inscriptionId)
-            ->where('trimestre_id', $trimestreId)
-            ->first();
+    $moyenne = Moyenne::where('inscription_id', $inscriptionId)
+        ->where('trimestre_id', $trimestreId)
+        ->first();
 
-        // Charger les notes avec les détails
-        $notesBrutes = Note::where('inscription_id', $inscriptionId)
-            ->where('trimestre_id', $trimestreId)
-            ->with('matiere')
-            ->get();
+    // ── Charger les notes avec les détails ──────────────────────────────────
+    $notesBrutes = Note::where('inscription_id', $inscriptionId)
+        ->where('trimestre_id', $trimestreId)
+        ->with('matiere')
+        ->get();
 
-        // Regrouper par matière
-        $notes = $notesBrutes->groupBy('matiere_id')->map(function($group) {
-            return [
-                'moyenne_interro' => $group->avg('moyenne_interro') ?? null,
-                'devoir1'         => $group->first()->devoir1 ?? null,
-                'devoir2'         => $group->first()->devoir2 ?? null,
-                'moyenne_matiere' => $group->first()->moyenne_matiere ?? null,
-                'appreciation'    => $this->getAppreciationMatiere($group->first()->moyenne_matiere ?? null),
-            ];
-        })->toArray();
+    // ── Regrouper par matière ───────────────────────────────────────────────
+    $notes = $notesBrutes->groupBy('matiere_id')->map(function ($group) {
+        return [
+            'moyenne_interro' => $group->avg('moyenne_interro') ?? null,
+            'devoir1'         => $group->first()->devoir1 ?? null,
+            'devoir2'         => $group->first()->devoir2 ?? null,
+            'moyenne_matiere' => $group->first()->moyenne_matiere ?? null,
+            'appreciation'    => $this->getAppreciationMatiere($group->first()->moyenne_matiere ?? null),
+        ];
+    })->toArray();
 
-        $conduite = Conduite::where('inscription_id', $inscriptionId)
-            ->where('trimestre_id', $trimestreId)
-            ->first();
+    // ── Conduite ────────────────────────────────────────────────────────────
+    $conduite     = Conduite::where('inscription_id', $inscriptionId)
+        ->where('trimestre_id', $trimestreId)
+        ->first();
+    $noteConduite = $conduite->note_conduite ?? null;
 
-        $moyenneTrimestre = $moyenne->moyenne_trimestrielle ?? 0;
-        $moyenneAnnuelle  = $moyenne->moyenne_annuelle ?? null;
+    // ── RECALCUL DYNAMIQUE de la moyenne trimestrielle ──────────────────────
+    //
+    //  Formule : Σ(moyenne_matiere × coeff) + (note_conduite × coeff_conduite)
+    //            ─────────────────────────────────────────────────────────────
+    //                       Σ(coeff) + coeff_conduite
+    //
+    $somme      = 0.0;
+    $totalCoeff = 0.0;
 
-        // Calculer les moyennes T1, T2, T3 pour le 3ème trimestre
-        $moyenneT1 = null;
-        $moyenneT2 = null;
-        $moyenneT3 = null;
+    foreach ($inscription->classe->matieres as $matiere) {
+        // Récupère le coefficient depuis la table pivot (classe_matiere)
+       $coeff = $matiere->coefficient ?? 1;
+        $notMatiere  = $notes[$matiere->id]['moyenne_matiere'] ?? null;
 
-        if ($trimestreId == 3) {
-            $moyenneT1 = Moyenne::where('inscription_id', $inscriptionId)
-                ->where('trimestre_id', 1)
-                ->value('moyenne_trimestrielle');
-
-            $moyenneT2 = Moyenne::where('inscription_id', $inscriptionId)
-                ->where('trimestre_id', 2)
-                ->value('moyenne_trimestrielle');
-
-            $moyenneT3 = $moyenneTrimestre;
+        // Ignore les matières sans aucune note saisie
+        if ($notMatiere === null) {
+            continue;
         }
 
-        // Déterminer la classe supérieure
-        $classeSuperieure = null;
-        if ($moyenneAnnuelle >= 10) {
-            $ordreActuel    = $inscription->classe->ordre;
-            $classeSuivante = Classe::where('ordre', $ordreActuel + 1)
-                ->where('cycle_id', $inscription->classe->cycle_id)
-                ->first();
+        $somme      += (float) $notMatiere * (float) $coeff;
+        $totalCoeff += (float) $coeff;
+    }
 
-            if ($classeSuivante) {
-                $classeSuperieure = $classeSuivante->nom;
+    // Intégrer la conduite dans la moyenne (coefficient paramétrable)
+    $coeffConduite = 1; // ← ajustez selon vos règles pédagogiques
+    if ($noteConduite !== null) {
+        $somme      += (float) $noteConduite * $coeffConduite;
+        $totalCoeff += $coeffConduite;
+    }
+
+    // Moyenne calculée dynamiquement (jamais lue depuis la BD)
+    $moyenneTrimestre = $totalCoeff > 0
+        ? round($somme / $totalCoeff, 2)
+        : 0;
+
+    // ── Persister la valeur recalculée pour le rang ─────────────────────────
+    if ($moyenne) {
+        $moyenne->update(['moyenne_trimestrielle' => $moyenneTrimestre]);
+    }
+
+    // ── Moyenne annuelle ────────────────────────────────────────────────────
+    $moyenneAnnuelle = $moyenne->moyenne_annuelle ?? null;
+
+    // ── Moyennes T1 / T2 / T3 (affichage au 3ème trimestre) ────────────────
+    $moyenneT1 = null;
+    $moyenneT2 = null;
+    $moyenneT3 = null;
+
+    if ($trimestreId == 3) {
+        $moyenneT1 = Moyenne::where('inscription_id', $inscriptionId)
+            ->where('trimestre_id', 1)
+            ->value('moyenne_trimestrielle');
+
+        $moyenneT2 = Moyenne::where('inscription_id', $inscriptionId)
+            ->where('trimestre_id', 2)
+            ->value('moyenne_trimestrielle');
+
+        $moyenneT3 = $moyenneTrimestre;
+
+        // Recalculer la moyenne annuelle à partir des 3 trimestres
+        $t1 = (float) ($moyenneT1 ?? 0);
+        $t2 = (float) ($moyenneT2 ?? 0);
+        $t3 = (float) $moyenneTrimestre;
+
+        if ($moyenneT1 !== null && $moyenneT2 !== null) {
+            $moyenneAnnuelle = round(($t1 + $t2 + $t3) / 3, 2);
+
+            if ($moyenne) {
+                $moyenne->update(['moyenne_annuelle' => $moyenneAnnuelle]);
             }
         }
-
-        // Mention : moyenne_annuelle au T3, moyenne_trimestrielle aux T1 et T2
-        $moyennePourMention = $trimestreId == 3 ? ($moyenneAnnuelle ?? 0) : $moyenneTrimestre;
-
-        return [
-            'inscription' => $inscription,
-            'classe'      => $inscription->classe,
-            'annee'       => $inscription->annee,
-            'trimestre'   => $inscription->annee->trimestres->firstWhere('id', $trimestreId),
-
-            'notes' => $notes,
-
-            'noteConduite'         => $conduite->note_conduite ?? 0,
-            'appreciationConduite' => $conduite->appreciation ?? $this->getAppreciationConduite($conduite->note_conduite ?? 0),
-
-            'moyenne_trimestre'    => $moyenneTrimestre,
-            'moyenne_scientifique' => $moyenne->moyenne_scientifique ?? 0,
-            'moyenne_litteraire'   => $moyenne->moyenne_litteraire ?? 0,
-
-            'moyenne_annuelle' => $moyenneAnnuelle,
-
-            'rang_trimestre' => $moyenne->rang_trimestre ?? null,
-            'rang_annuel'    => $moyenne->rang_annuel ?? null,
-
-            'mention'      => $this->getMention($moyennePourMention, $trimestreId),
-            'appreciation' => $this->getAppreciationGenerale($moyenneTrimestre, $moyenneAnnuelle, $trimestreId),
-
-            'moyenneT1' => $moyenneT1,
-            'moyenneT2' => $moyenneT2,
-            'moyenneT3' => $moyenneT3,
-
-            'decision' => $moyenneAnnuelle >= 10
-                ? 'Passe en ' . ($classeSuperieure ?? 'classe supérieure')
-                : 'Redouble',
-
-            'classe_superieure' => $classeSuperieure,
-
-            // Stats de classe (calculées en dehors ou passées en paramètre)
-            'total_eleves'      => $statsClasse['total_eleves'] ?? null,
-            'plusFaibleMoyenne' => $statsClasse['plusFaibleMoyenne'] ?? null,
-            'plusForteMoyenne'  => $statsClasse['plusForteMoyenne'] ?? null,
-        ];
     }
+
+    // ── Classe supérieure ───────────────────────────────────────────────────
+    $classeSuperieure = null;
+    if ($moyenneAnnuelle >= 10) {
+        $ordreActuel    = $inscription->classe->ordre;
+        $classeSuivante = Classe::where('ordre', $ordreActuel + 1)
+            ->where('cycle_id', $inscription->classe->cycle_id)
+            ->first();
+
+        if ($classeSuivante) {
+            $classeSuperieure = $classeSuivante->nom;
+        }
+    }
+
+    // ── Mention (T1/T2 → trimestrielle, T3 → annuelle) ─────────────────────
+    $moyennePourMention = $trimestreId == 3
+        ? ($moyenneAnnuelle ?? 0)
+        : $moyenneTrimestre;
+
+    // ── Retour ──────────────────────────────────────────────────────────────
+    return [
+        'inscription' => $inscription,
+        'classe'      => $inscription->classe,
+        'annee'       => $inscription->annee,
+        'trimestre'   => $inscription->annee->trimestres->firstWhere('id', $trimestreId),
+
+        'notes' => $notes,
+
+        'noteConduite'         => $noteConduite ?? 0,
+        'appreciationConduite' => $conduite->appreciation
+            ?? $this->getAppreciationConduite($noteConduite ?? 0),
+
+        'moyenne_trimestre'    => $moyenneTrimestre,   // ← valeur recalculée
+        'moyenne_scientifique' => $moyenne->moyenne_scientifique ?? 0,
+        'moyenne_litteraire'   => $moyenne->moyenne_litteraire   ?? 0,
+
+        'moyenne_annuelle' => $moyenneAnnuelle,
+
+        'rang_trimestre' => $moyenne->rang_trimestre ?? null,
+        'rang_annuel'    => $moyenne->rang_annuel    ?? null,
+
+        'mention'      => $this->getMention($moyennePourMention, $trimestreId),
+        'appreciation' => $this->getAppreciationGenerale($moyenneTrimestre, $moyenneAnnuelle, $trimestreId),
+
+        'moyenneT1' => $moyenneT1,
+        'moyenneT2' => $moyenneT2,
+        'moyenneT3' => $moyenneT3,
+
+        'decision' => ($moyenneAnnuelle ?? 0) >= 10
+            ? 'Passe en ' . ($classeSuperieure ?? 'classe supérieure')
+            : 'Redouble',
+
+        'classe_superieure' => $classeSuperieure,
+
+        'total_eleves'      => $statsClasse['total_eleves']      ?? null,
+        'plusFaibleMoyenne' => $statsClasse['plusFaibleMoyenne'] ?? null,
+        'plusForteMoyenne'  => $statsClasse['plusForteMoyenne']  ?? null,
+    ];
+}
 
     /**
      * T1 & T2 → moyenne_trimestrielle

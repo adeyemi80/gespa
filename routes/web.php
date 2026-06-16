@@ -5,7 +5,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\ProfilController;
 //use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Auth\LoginController;
-use App\Http\Controllers\MoyenneController;
+//use App\Http\Controllers\MoyenneController;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\OperationController;
@@ -81,6 +81,7 @@ use App\Http\Controllers\RecuPaiementController;
 use App\Livewire\PaiementMultiple;
 use App\Http\Livewire\AnnulationPassage;
 use App\Http\Controllers\TdRecapPdfController;
+use App\Http\Controllers\TdRecapController;
 use App\Http\Controllers\TdSeanceController;
 use App\Http\Controllers\TdTarifController;
 use App\Http\Controllers\TdPresenceController;
@@ -313,8 +314,8 @@ Route::post('/conduites/inserer', [ConduiteController::class, 'inserer'])->name(
 // Routes RESTful (sans show)
 Route::resource('conduites', ConduiteController::class)->except(['show']);
 // Route dynamique show avec contrainte pour éviter les collisions (comme "import")
-    Route::get('/moyennes', [MoyenneController::class, 'index'])->name('moyennes.index');
-    Route::post('/moyennes/recalculer', [MoyenneController::class, 'recalculer'])->name('moyennes.recalculer');
+   // routes/web.php
+
 /*
 |--------------------------------------------------------------------------
 | BULLETINS - WEB (PROPRE ARCHITECTURE)
@@ -472,6 +473,11 @@ Route::get('/roles/{role}/pdf', [RoleController::class, 'exportPdf'])->name('rol
 // routes/web.php
 
 
+
+
+Route::get('td/recap/toutes-classes/pdf', [TdRecapController::class, 'pdfToutesClasses']) ->name('td.recap.toutes-classes.pdf');
+Route::get('td/recap/pdf',        [TdRecapController::class, 'pdf'])->name('td.recap.pdf');
+Route::get('td/recap/classe/pdf', [TdRecapController::class, 'pdfClasse'])->name('td.recap.classe.pdf');
 Route::get('td-presences/{seance}', [TdPresenceController::class, 'show'])->name('td-presences.show');
 Route::resource('td-tarifs', App\Http\Controllers\TdTarifController::class);
 Route::resource('td-seances', App\Http\Controllers\TdSeanceController::class);

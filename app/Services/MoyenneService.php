@@ -6,12 +6,10 @@ use App\Models\Inscription;
 use App\Models\Note;
 use App\Models\Moyenne;
 use App\Models\Conduite;
+use Illuminate\Support\Facades\DB;
 
 class MoyenneService
 {
-    /**
-     * Calcule et enregistre les moyennes d'une inscription
-     */
     public function calculerMoyennes(int $inscriptionId): void
     {
         $inscription = Inscription::with(['classe.matieres', 'annee.trimestres'])
@@ -20,48 +18,59 @@ class MoyenneService
         $anneeId  = $inscription->annee_id;
         $classeId = $inscription->classe_id;
 
+        // ✅ Coefficients depuis le pivot classe_matiere
+        $coefficients = $inscription->classe->matieres
+            ->pluck('coefficient', 'id');
+
         $notes = Note::with('matiere')
             ->where('inscription_id', $inscriptionId)
             ->where('annee_id', $anneeId)
             ->whereIn('matiere_id', $inscription->classe->matieres->pluck('id'))
             ->get();
 
-        $trimestres = $inscription->annee->trimestres->pluck('id')->prepend(0);
+        $trimestres = $inscription->annee->trimestres->pluck('id');
 
         foreach ($trimestres as $trimestreId) {
 
-            $notesTrimestre = $trimestreId === 0
-                ? $notes
-                : $notes->where('trimestre_id', $trimestreId);
+            $notesTrimestre = $notes->where('trimestre_id', $trimestreId);
 
-            $notesValides = $notesTrimestre->filter(fn($n) =>
-                $n->moyenne_matiere !== null && $n->moyenne_matiere > 0
+            $notesValides = $notesTrimestre->filter(
+                fn($n) => $n->moyenne_matiere !== null && $n->moyenne_matiere > 0
             );
 
             if ($notesValides->isEmpty()) {
-                $moyenne = 0;
-                $scientifique = 0;
-                $litteraire = 0;
+                $moyenneTrimestre = 0;
+                $scientifique     = 0;
+                $litteraire       = 0;
             } else {
 
+                // ✅ Coefficient depuis le pivot
+                $somme = $notesValides->sum(fn($n) =>
+                    $n->moyenne_matiere * ((float) ($coefficients[$n->matiere_id] ?? 1))
+                );
+
+                $totalCoeff = $notesValides->sum(fn($n) =>
+                    (float) ($coefficients[$n->matiere_id] ?? 1)
+                );
+
+                // ✅ Conduite : seulement si saisie (non nulle)
                 $noteConduite = Conduite::where([
                     'inscription_id' => $inscriptionId,
-                    'annee_id' => $anneeId,
-                    'trimestre_id' => $trimestreId,
-                ])->value('note_conduite') ?? 0;
+                    'annee_id'       => $anneeId,
+                    'trimestre_id'   => $trimestreId,
+                ])->value('note_conduite');
 
-                $somme = $notesValides->sum(fn($n) =>
-                    $n->moyenne_matiere * ($n->matiere->coefficient ?? 1)
-                );
+                if ($noteConduite !== null) {
+                    $somme      += (float) $noteConduite;
+                    $totalCoeff += 1;
+                }
 
-                $coef = $notesValides->sum(fn($n) =>
-                    $n->matiere->coefficient ?? 1
-                );
+                $moyenneTrimestre = $totalCoeff > 0
+                    ? round($somme / $totalCoeff, 2)
+                    : 0;
 
-                $moyenne = round(($somme + $noteConduite) / max($coef + 1, 1), 2);
-
-                $scientifique = $this->calculCategorie($notesValides, 'scientifique');
-                $litteraire   = $this->calculCategorie($notesValides, 'litteraire');
+                $scientifique = $this->calculCategorie($notesValides, 'scientifique', $coefficients);
+                $litteraire   = $this->calculCategorie($notesValides, 'litteraire', $coefficients);
             }
 
             Moyenne::updateOrCreate(
@@ -72,7 +81,7 @@ class MoyenneService
                 ],
                 [
                     'classe_id'             => $classeId,
-                    'moyenne_trimestrielle' => $moyenne,
+                    'moyenne_trimestrielle' => $moyenneTrimestre,
                     'moyenne_scientifique'  => $scientifique,
                     'moyenne_litteraire'    => $litteraire,
                 ]
@@ -82,29 +91,24 @@ class MoyenneService
         $this->calculerMoyenneAnnuelle($inscriptionId);
     }
 
-    /**
-     * Moyenne par catégorie
-     */
-    public function calculCategorie($notes, string $type): float
+    // ✅ Coefficients passés en paramètre depuis le pivot
+    public function calculCategorie($notes, string $type, $coefficients = []): float
     {
-        $notesCat = $notes->filter(fn($n) =>
-            optional($n->matiere)->type === $type
+        $notesCat = $notes->filter(
+            fn($n) => optional($n->matiere)->type === $type
         );
 
         $somme = $notesCat->sum(fn($n) =>
-            $n->moyenne_matiere * ($n->matiere->coefficient ?? 1)
+            $n->moyenne_matiere * ((float) ($coefficients[$n->matiere_id] ?? 1))
         );
 
         $coef = $notesCat->sum(fn($n) =>
-            $n->matiere->coefficient ?? 1
+            (float) ($coefficients[$n->matiere_id] ?? 1)
         );
 
         return $coef > 0 ? round($somme / $coef, 2) : 0;
     }
 
-    /**
-     * Moyenne annuelle
-     */
     public function calculerMoyenneAnnuelle(int $inscriptionId): void
     {
         $moyennes = Moyenne::where('inscription_id', $inscriptionId)
@@ -116,16 +120,94 @@ class MoyenneService
             return;
         }
 
-        $moyenneAnnuelle = round(
-            $moyennes->avg('moyenne_trimestrielle'),
-            2
-        );
+        // ✅ Moyenne des 3 trimestres (pas avg() qui exclut les 0)
+        $moyenneAnnuelle = round($moyennes->avg('moyenne_trimestrielle'), 2);
 
         Moyenne::where([
             'inscription_id' => $inscriptionId,
             'trimestre_id'   => 3,
-        ])->update([
-            'moyenne_annuelle' => $moyenneAnnuelle
-        ]);
+        ])->update(['moyenne_annuelle' => $moyenneAnnuelle]);
     }
+
+    // ✅ Alias utilisé par RecalculerMoyennesListener
+    public function mettreAJourMoyennesParInscription(int $inscriptionId): void
+    {
+        $this->calculerMoyennes($inscriptionId);
+    }
+
+   public function calculerClassementAnnuel(int $anneeId, int $classeId): void
+{
+    DB::transaction(function () use ($classeId, $anneeId) {
+
+        // Reset rangs
+        Moyenne::where([
+            'classe_id' => $classeId,
+            'annee_id'  => $anneeId,
+        ])->update([
+            'rang_trimestre' => null,
+            'rang_annuel'    => null,
+        ]);
+
+        // ── Rangs trimestriels ─────────────────────────────────────────────
+        $trimestres = Moyenne::where([
+            'classe_id' => $classeId,
+            'annee_id'  => $anneeId,
+        ])->pluck('trimestre_id')->unique();
+
+        foreach ($trimestres as $trimestreId) {
+
+            $moyennes = Moyenne::with('inscription.eleve')
+                ->where([
+                    'classe_id'    => $classeId,
+                    'annee_id'     => $anneeId,
+                    'trimestre_id' => $trimestreId,
+                ])
+                ->whereNotNull('moyenne_trimestrielle')
+                ->orderByDesc('moyenne_trimestrielle')
+                ->get();
+
+            $this->attribuerRangs($moyennes, 'rang_trimestre', 'moyenne_trimestrielle');
+        }
+
+        // ── Rangs annuels ──────────────────────────────────────────────────
+        $moyennesAnnuelles = Moyenne::with('inscription.eleve')
+            ->where([
+                'classe_id'    => $classeId,
+                'annee_id'     => $anneeId,
+                'trimestre_id' => 3,
+            ])
+            ->whereNotNull('moyenne_annuelle')
+            ->orderByDesc('moyenne_annuelle')
+            ->get();
+
+        $this->attribuerRangs($moyennesAnnuelles, 'rang_annuel', 'moyenne_annuelle');
+    });
+}
+
+private function attribuerRangs($collection, string $champRang, string $champMoyenne): void
+{
+    $rang      = 1;
+    $rangReel  = 1;
+    $precedent = null;
+
+    foreach ($collection as $item) {
+
+        $moyenne = $item->$champMoyenne;
+
+        if ($precedent !== null && bccomp((string)$moyenne, (string)$precedent, 2) !== 0) {
+            $rangReel = $rang;
+        }
+
+        $sexe    = strtoupper($item->inscription->eleve->sexe ?? 'M');
+        $suffixe = $rangReel === 1
+            ? ($sexe === 'F' ? 'ère' : 'er')
+            : 'ème';
+
+        $item->$champRang = $rangReel . $suffixe;
+        $item->save();
+
+        $precedent = $moyenne;
+        $rang++;
+    }
+}
 }

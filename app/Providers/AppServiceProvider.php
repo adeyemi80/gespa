@@ -7,7 +7,11 @@ use App\Observers\AnneeObserver;
 use App\Models\Inscription;
 use App\Observers\InscriptionObserver;
 use App\Observers\UserObserver;
+use App\Models\Note;
+use App\Observers\NoteObserver;
+//use App\Observers\ConduiteObserver;
 use App\Models\User;  
+//use App\Models\Conduite;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Pagination\Paginator;
  use Illuminate\Support\Facades\View;
@@ -31,6 +35,8 @@ class AppServiceProvider extends ServiceProvider
 public function boot()
 {
     Annee::observe(AnneeObserver::class);
+    Note::observe(NoteObserver::class);
+    //Conduite::observe(ConduiteObserver::class);
     //Frais::observe(FraisObserver::class);
     Inscription::observe(InscriptionObserver::class);
     //User::observe(UserObserver::class);

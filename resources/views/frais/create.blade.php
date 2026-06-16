@@ -48,13 +48,12 @@
            class="form-control form-control-sm {{ $errors->has('nom') ? 'is-invalid' : '' }}" required>
                             <option value="">-- Choisir le Nom du Frais --</option>
                             <option value="scolarite">Scolarité</option>
-                            <option value="frais_inscription">Frais d'inscription</option>
-                            <option value="frais_reinscription">Frais de Réinscription</option>
+                            <option value="frais d\'inscription">Frais d'inscription</option>
+                            <option value="frais de reinscription">Frais de Réinscription</option>
                             <option value="uniforme">Uniforme</option>
                             <option value="tenue de sport">Tenue de sport</option>
-                            <option value="td annuel">TD par année</option>
-                            <option value="td mensuel">TD par mois</option>
-                            <option value="td seance">TD par séance</option>
+                            <option value="frais de dossier de bepc">Frais de Dossier de BEPC</option>
+                            <option value="frais de dossier de bac">Frais de Dossier de BAC</option>
                             <option value="lacoste">Lacoste uniforme</option>
                             <option value="sejour">Frais de séjour</option>
                             <option value="sortie">Sortie pédagogique</option>

@@ -85,6 +85,25 @@ class TdRecapService
             ->count();
     }
 
+    /**
+     * Nombre total de séances suivies sur une liste de mois (cumulé).
+     */
+    private function nbSeancesSuiviesCumule(
+        int $eleveId,
+        int $anneeId,
+        array $moisEcoules,
+        int $anneeDebut
+    ): int {
+        $total = 0;
+
+        foreach ($moisEcoules as $mois) {
+            $anneeCivile = $this->anneeCivilePourMois($mois, $anneeDebut);
+            $total += $this->nbSeancesSuivies($eleveId, $anneeId, $mois, $anneeCivile);
+        }
+
+        return $total;
+    }
+
     /* =========================================================
      |  DETTE (DÛ)
      ========================================================= */
@@ -133,29 +152,17 @@ class TdRecapService
         $total = 0;
 
         foreach ($moisEcoules as $mois) {
-
             $anneeCivile = $this->anneeCivilePourMois($mois, $anneeDebut);
-
-            $total += $this->montantDuMois(
-                $eleveId,
-                $anneeId,
-                $categorie,
-                $mois,
-                $anneeCivile
-            );
+            $total += $this->montantDuMois($eleveId, $anneeId, $categorie, $mois, $anneeCivile);
         }
 
         return $total;
     }
 
     /* =========================================================
-     |  PAYÉ - CUMUL JUSQU'À UN MOIS DONNÉ (CORRECTION 1)
+     |  PAYÉ - CUMUL JUSQU'À UN MOIS DONNÉ
      ========================================================= */
 
-    /**
-     * Total des paiements effectués jusqu'à la fin du mois scolaire donné
-     * (inclus), peu importe le type de paiement.
-     */
     private function montantPayeJusquAuMois(
         int $eleveId,
         int $anneeId,
@@ -164,8 +171,7 @@ class TdRecapService
     ): float {
 
         $anneeCivile = $this->anneeCivilePourMois($mois, $anneeDebut);
-
-        $dateFin = Carbon::create($anneeCivile, $mois, 1)->endOfMonth();
+        $dateFin     = Carbon::create($anneeCivile, $mois, 1)->endOfMonth();
 
         return TdPaiement::where('eleve_id', $eleveId)
             ->where('annee_id', $anneeId)
@@ -174,7 +180,7 @@ class TdRecapService
     }
 
     /**
-     * Total des paiements sur toute l'année (utilisé pour le récap annuel).
+     * Total des paiements sur toute l'année.
      */
     private function montantPayeTotal(int $eleveId, int $anneeId): float
     {
@@ -184,7 +190,7 @@ class TdRecapService
     }
 
     /* =========================================================
-     |  RECAP MENSUEL (COMPTE GLOBAL)
+     |  RECAP MENSUEL
      ========================================================= */
 
     public function recapMensuel(
@@ -200,89 +206,68 @@ class TdRecapService
         $moisEcoules    = $this->moisEcoules($mois);
         $moisPrecedents = array_slice($moisEcoules, 0, -1);
 
-        $anneeCiviledMois = $this->anneeCivilePourMois($mois, $anneeDebut);
+        $anneeCivileMois = $this->anneeCivilePourMois($mois, $anneeDebut);
 
-        // =========================
-        // DÛ DU MOIS SÉLECTIONNÉ
-        // =========================
+        // --- DÛ DU MOIS ---
         $montantDuMois = $this->montantDuMois(
-            $eleve->id,
-            $anneeId,
-            $categorie,
-            $mois,
-            $anneeCiviledMois
+            $eleve->id, $anneeId, $categorie, $mois, $anneeCivileMois
         );
 
-        // =========================
-        // DÛ CUMULÉ (jusqu'à ce mois inclus)
-        // =========================
+        // --- DÛ CUMULÉ ---
         $montantDuCumule = $this->montantDuCumule(
-            $eleve->id,
-            $anneeId,
-            $categorie,
-            $moisEcoules,
-            $anneeDebut
+            $eleve->id, $anneeId, $categorie, $moisEcoules, $anneeDebut
         );
 
-        // =========================
-        // PAYÉ CUMULÉ (jusqu'à ce mois inclus) — CORRECTION 1
-        // =========================
+        // --- PAYÉ CUMULÉ ---
         $montantPayeCumule = $this->montantPayeJusquAuMois(
-            $eleve->id,
-            $anneeId,
-            $mois,
-            $anneeDebut
+            $eleve->id, $anneeId, $mois, $anneeDebut
         );
 
-        // =========================
-        // ARRIÉRÉ AVANT CE MOIS — CORRECTION 2
-        // =========================
+        // --- ARRIÉRÉ AVANT CE MOIS ---
         if (empty($moisPrecedents)) {
-            // Premier mois de l'année scolaire : aucun arriéré possible
             $arriere = 0;
         } else {
             $moisDuDernierPrecedent = end($moisPrecedents);
 
             $dettePrecedente = $this->montantDuCumule(
-                $eleve->id,
-                $anneeId,
-                $categorie,
-                $moisPrecedents,
-                $anneeDebut
+                $eleve->id, $anneeId, $categorie, $moisPrecedents, $anneeDebut
             );
 
             $payePrecedent = $this->montantPayeJusquAuMois(
-                $eleve->id,
-                $anneeId,
-                $moisDuDernierPrecedent,
-                $anneeDebut
+                $eleve->id, $anneeId, $moisDuDernierPrecedent, $anneeDebut
             );
 
             $arriere = max($dettePrecedente - $payePrecedent, 0);
         }
 
+        // --- NB TD SUIVIS (cumulé jusqu'à ce mois inclus) ---
+        $nbTd = $this->nbSeancesSuiviesCumule(
+            $eleve->id, $anneeId, $moisEcoules, $anneeDebut
+        );
+
         return [
-            'eleve'  => $eleve,
-            'classe' => $classe,
-            'mode_paiement' => 'global',
+            'eleve'          => $eleve,
+            'classe'         => $classe,
+            'mode_paiement'  => 'global',
 
-            'arriere_avant_ce_mois' => $arriere,
+            'nb_td'                  => $nbTd,           // ← AJOUT
 
-            'montant_du_mois'   => $montantDuMois,
-            'montant_du_cumule' => $montantDuCumule,
+            'arriere_avant_ce_mois'  => $arriere,
 
-            'montant_paye_cumule'  => $montantPayeCumule,
-            'reste_a_payer_cumule' => max($montantDuCumule - $montantPayeCumule, 0),
+            'montant_du_mois'        => $montantDuMois,
+            'montant_du_cumule'      => $montantDuCumule,
 
-            'avance' => max($montantPayeCumule - $montantDuCumule, 0),
+            'montant_paye_cumule'    => $montantPayeCumule,
+            'reste_a_payer_cumule'   => max($montantDuCumule - $montantPayeCumule, 0),
 
-            // info utile UI
-            'mois_jusqu_ici' => $moisEcoules,
+            'avance'                 => max($montantPayeCumule - $montantDuCumule, 0),
+
+            'mois_jusqu_ici'         => $moisEcoules,
         ];
     }
 
     /* =========================================================
-     |  RECAP ANNUEL — CORRECTION 3
+     |  RECAP ANNUEL
      ========================================================= */
 
     public function recapAnnuel(
@@ -298,30 +283,26 @@ class TdRecapService
 
             $seancesIds = TdSeance::where('annee_id', $anneeId)->pluck('id');
 
-            $nbSeances = TdPresence::where('eleve_id', $eleve->id)
+            $nbTd = TdPresence::where('eleve_id', $eleve->id)
                 ->whereIn('td_seance_id', $seancesIds)
                 ->where('present', true)
                 ->count();
 
-            $montantDu = $nbSeances * $this->getTarif($anneeId, $categorie, 'seance');
+            $montantDu = $nbTd * $this->getTarif($anneeId, $categorie, 'seance');
 
         } else {
 
-            // 3eme / terminale : un mois commencé = un mois dû
+            $nbTd      = 0;
             $montantDu = 0;
 
             foreach (self::MOIS_SCOLAIRES as $mois) {
 
                 $anneeCivile = $this->anneeCivilePourMois($mois, $anneeDebut);
 
-                $nb = $this->nbSeancesSuivies(
-                    $eleve->id,
-                    $anneeId,
-                    $mois,
-                    $anneeCivile
-                );
+                $nb = $this->nbSeancesSuivies($eleve->id, $anneeId, $mois, $anneeCivile);
 
                 if ($nb > 0) {
+                    $nbTd      += $nb;
                     $montantDu += $this->getTarif($anneeId, $categorie, 'mois');
                 }
             }
@@ -330,9 +311,10 @@ class TdRecapService
         $montantPaye = $this->montantPayeTotal($eleve->id, $anneeId);
 
         return [
-            'eleve'  => $eleve,
-            'classe' => $classe,
+            'eleve'   => $eleve,
+            'classe'  => $classe,
 
+            'nb_td'         => $nbTd,                               // ← AJOUT + harmonisé
             'montant_du'    => $montantDu,
             'montant_paye'  => $montantPaye,
             'reste_a_payer' => max($montantDu - $montantPaye, 0),

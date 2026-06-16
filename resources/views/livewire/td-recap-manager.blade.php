@@ -85,6 +85,9 @@
                               class="spinner-border spinner-border-sm me-1"></span>
                         <i class="bi bi-table me-1"></i>Récap Classe
                     </button>
+                      <button wire:click="calculerToutesClasses" class="btn btn-warning w-100">
+    <i class="bi bi-grid me-1"></i> Toutes les classes
+</button>
                 </div>
 
             </div>

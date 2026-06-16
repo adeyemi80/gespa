@@ -18,11 +18,11 @@
 
             @php
                 $cards2 = [
-                   
+                    
                     ['route'=>'bulletins.bulletins','color'=>'info','icon'=>'file-earmark-arrow-up','title'=>' LES BULLETINS PAR CLASSE'],
                     ['route'=>'dashboard.statistiques','color'=>'info','icon'=>'file-text','title'=>'LES STATISTIQUES'],
                     ['route'=>'classement.par.classe','color'=>'info','icon'=>'files','title'=>'CLASSEMENT PAR CLASSE'],
-                     ['route'=>'dashboard.statistique.classement.annuel','color'=>'info','icon'=>'file-text','title'=>'RESULTATS ANNUELS'],
+                    ['route'=>'dashboard.statistique.classement.annuel.par.classe','color'=>'info','icon'=>'file-text','title'=>'RESULTATS ANNUELS PAR CLASSE'],
                 ];
             @endphp
 
@@ -44,9 +44,9 @@
             @php
                 $cards2 = [
                    
-                     ['route'=>'dashboard.statistique.classement.annuel.par.classe','color'=>'info','icon'=>'file-text','title'=>'RESULTATS ANNUELS PAR CLASSE'],
-                      ['route'=>'notes.moyennes','color'=>'info','icon'=>'file-text','title'=>'CALCUL DES MOYENNES INTERRO ET MATIERE'],
                     
+                      ['route'=>'notes.moyennes','color'=>'info','icon'=>'file-text','title'=>'CALCUL DES MOYENNES INTERRO ET MATIERE'],
+                     ['route'=>'dashboard.statistique.classement.annuel','color'=>'info','icon'=>'file-text','title'=>'RESULTATS ANNUELS'],
                 ];
             @endphp
 
