@@ -34,6 +34,7 @@ class ModeleConduiteExport implements FromCollection, WithHeadings, WithMapping,
         return Inscription::with('eleve')
         ->join('eleves', 'inscriptions.eleve_id', '=', 'eleves.id')
         ->where('inscriptions.classe_id', $this->classe_id)
+            ->where('inscriptions.annee_id', $this->annee_id)
         ->orderBy('eleves.nom', 'asc')
         ->orderBy('eleves.prenom', 'asc')
         ->select('inscriptions.*')

@@ -37,7 +37,22 @@ class TdRecapManager extends Component
                           ?? $this->annees->first()?->id;
 
         $this->cycles = Cycle::orderBy('id')->get();
-        $this->mois   = now()->month;
+
+        // Si le mois civil actuel n'est pas un mois scolaire (juin-sept),
+        // on retombe sur Mai (dernier mois scolaire) par défaut.
+        $moisActuel = now()->month;
+        $this->mois = in_array($moisActuel, TdRecapService::MOIS_SCOLAIRES)
+                      ? $moisActuel
+                      : 5;
+    }
+
+    /**
+     * Nom lisible du mois sélectionné (ex: 1 → "Janvier").
+     * Accessible dans la vue via $this->moisNom
+     */
+    public function getMoisNomProperty(): string
+    {
+        return TdRecapService::MOIS_NOMS[(int) $this->mois] ?? (string) $this->mois;
     }
 
     public function updatedAnneeId()
@@ -84,75 +99,6 @@ class TdRecapManager extends Component
     }
 
     /* ---------------------------------------------------------------
-     * Méthode commune : calcul pour UNE classe donnée
-     * -------------------------------------------------------------- */
-    private function calculerPourClasse(
-        TdRecapService $service,
-        Classe $classe,
-        int $anneeId,
-        int $anneeDebut
-    ): array {
-
-        $inscriptions = Inscription::with('eleve')
-            ->join('eleves', 'inscriptions.eleve_id', '=', 'eleves.id')
-            ->where('inscriptions.annee_id', $anneeId)
-            ->where('inscriptions.classe_id', $classe->id)
-            ->orderBy('eleves.nom')->orderBy('eleves.prenom')
-            ->select('inscriptions.*', 'eleves.nom', 'eleves.prenom')
-            ->get();
-
-        $lignes  = [];
-        $totNbTd = $totDu = $totPaye = $totReste = 0;
-
-        foreach ($inscriptions as $insc) {
-            $eleve = Eleve::findOrFail($insc->eleve_id);
-
-            if ($this->mode === 'mois') {
-                $recap = $service->recapMensuel(
-                    $eleve, $classe, $anneeId, (int) $this->mois, $anneeDebut
-                );
-                $nbTd  = (int)   ($recap['nb_td']               ?? 0);
-                $du    = (float) ($recap['montant_du_cumule']    ?? 0);
-                $paye  = (float) ($recap['montant_paye_cumule']  ?? 0);
-                $reste = (float) ($recap['reste_a_payer_cumule'] ?? 0);
-            } else {
-                $recap = $service->recapAnnuel(
-                    $eleve, $classe, $anneeId, $anneeDebut
-                );
-                $nbTd  = (int)   ($recap['nb_td']        ?? 0);
-                $du    = (float) ($recap['montant_du']    ?? 0);
-                $paye  = (float) ($recap['montant_paye']  ?? 0);
-                $reste = (float) ($recap['reste_a_payer'] ?? 0);
-            }
-
-            $lignes[] = [
-                'nom'    => $insc->nom,
-                'prenom' => $insc->prenom,
-                'nb_td'  => $nbTd,
-                'du'     => $du,
-                'paye'   => $paye,
-                'reste'  => $reste,
-            ];
-
-            $totNbTd  += $nbTd;
-            $totDu    += $du;
-            $totPaye  += $paye;
-            $totReste += $reste;
-        }
-
-        return [
-            'classe' => $classe,
-            'lignes' => $lignes,
-            'totaux' => [
-                'nb_td' => $totNbTd,
-                'du'    => $totDu,
-                'paye'  => $totPaye,
-                'reste' => $totReste,
-            ],
-        ];
-    }
-
-    /* ---------------------------------------------------------------
      * Récap d'UNE classe sélectionnée
      * -------------------------------------------------------------- */
     public function calculerClasse(TdRecapService $service)
@@ -169,7 +115,9 @@ class TdRecapManager extends Component
         $classe     = Classe::findOrFail($this->classe_id);
         $anneeDebut = (int) Carbon::parse($annee->debut)->year;
 
-        $result = $this->calculerPourClasse($service, $classe, $this->annee_id, $anneeDebut);
+        $result = $service->recapPourClasse(
+            $classe, $this->annee_id, $anneeDebut, $this->mode, (int) $this->mois
+        );
 
         $this->recapClasse        = $result['lignes'];
         $this->totaux             = $result['totaux'];
@@ -202,7 +150,9 @@ class TdRecapManager extends Component
         $this->totaux             = [];
 
         foreach ($toutesClasses as $classe) {
-            $result = $this->calculerPourClasse($service, $classe, $this->annee_id, $anneeDebut);
+            $result = $service->recapPourClasse(
+                $classe, $this->annee_id, $anneeDebut, $this->mode, (int) $this->mois
+            );
             // N'inclure que les classes ayant au moins un élève inscrit
             if (!empty($result['lignes'])) {
                 $this->recapToutesClasses[] = $result;

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Eleve;
 use App\Models\Classe;
+use App\Models\Inscription;
 use App\Models\TdPresence;
 use App\Models\TdSeance;
 use App\Models\TdTarif;
@@ -18,6 +19,15 @@ class TdRecapService
     public const MOIS_SCOLAIRES = [10, 11, 12, 1, 2, 3, 4, 5];
 
     public const NB_MOIS_ANNEE = 8;
+
+    /**
+     * Noms des mois scolaires (pour affichage)
+     */
+    public const MOIS_NOMS = [
+        1  => 'Janvier',  2  => 'Février',  3  => 'Mars',
+        4  => 'Avril',    5  => 'Mai',
+        10 => 'Octobre',  11 => 'Novembre', 12 => 'Décembre',
+    ];
 
     /* =========================================================
      |  OUTILS DE BASE
@@ -63,6 +73,15 @@ class TdRecapService
         return $index === false
             ? self::MOIS_SCOLAIRES
             : array_slice(self::MOIS_SCOLAIRES, 0, $index + 1);
+    }
+
+    /**
+     * Nom lisible d'un mois scolaire (ex: 1 → "Janvier").
+     * Retourne le numéro brut si le mois n'est pas reconnu.
+     */
+    public function nomMois(int $mois): string
+    {
+        return self::MOIS_NOMS[$mois] ?? (string) $mois;
     }
 
     /* =========================================================
@@ -250,7 +269,7 @@ class TdRecapService
             'classe'         => $classe,
             'mode_paiement'  => 'global',
 
-            'nb_td'                  => $nbTd,           // ← AJOUT
+            'nb_td'                  => $nbTd,
 
             'arriere_avant_ce_mois'  => $arriere,
 
@@ -314,10 +333,82 @@ class TdRecapService
             'eleve'   => $eleve,
             'classe'  => $classe,
 
-            'nb_td'         => $nbTd,                               // ← AJOUT + harmonisé
+            'nb_td'         => $nbTd,
             'montant_du'    => $montantDu,
             'montant_paye'  => $montantPaye,
             'reste_a_payer' => max($montantDu - $montantPaye, 0),
+        ];
+    }
+
+    /* =========================================================
+     |  RECAP POUR UNE CLASSE ENTIÈRE (tous les élèves inscrits)
+     |  Utilisé par TdRecapManager (Livewire) ET TdRecapPdfController
+     ========================================================= */
+
+    public function recapPourClasse(
+        Classe $classe,
+        int $anneeId,
+        int $anneeDebut,
+        string $mode,
+        ?int $mois = null
+    ): array {
+
+        $inscriptions = Inscription::with('eleve')
+            ->join('eleves', 'inscriptions.eleve_id', '=', 'eleves.id')
+            ->where('inscriptions.annee_id', $anneeId)
+            ->where('inscriptions.classe_id', $classe->id)
+            ->orderBy('eleves.nom')->orderBy('eleves.prenom')
+            ->select('inscriptions.*', 'eleves.nom', 'eleves.prenom')
+            ->get();
+
+        $lignes  = [];
+        $totNbTd = $totDu = $totPaye = $totReste = 0;
+
+        foreach ($inscriptions as $insc) {
+            $eleve = Eleve::findOrFail($insc->eleve_id);
+
+            if ($mode === 'mois') {
+                $recap = $this->recapMensuel(
+                    $eleve, $classe, $anneeId, (int) $mois, $anneeDebut
+                );
+                $nbTd  = (int)   ($recap['nb_td']               ?? 0);
+                $du    = (float) ($recap['montant_du_cumule']    ?? 0);
+                $paye  = (float) ($recap['montant_paye_cumule']  ?? 0);
+                $reste = (float) ($recap['reste_a_payer_cumule'] ?? 0);
+            } else {
+                $recap = $this->recapAnnuel(
+                    $eleve, $classe, $anneeId, $anneeDebut
+                );
+                $nbTd  = (int)   ($recap['nb_td']        ?? 0);
+                $du    = (float) ($recap['montant_du']    ?? 0);
+                $paye  = (float) ($recap['montant_paye']  ?? 0);
+                $reste = (float) ($recap['reste_a_payer'] ?? 0);
+            }
+
+            $lignes[] = [
+                'nom'    => $insc->nom,
+                'prenom' => $insc->prenom,
+                'nb_td'  => $nbTd,
+                'du'     => $du,
+                'paye'   => $paye,
+                'reste'  => $reste,
+            ];
+
+            $totNbTd  += $nbTd;
+            $totDu    += $du;
+            $totPaye  += $paye;
+            $totReste += $reste;
+        }
+
+        return [
+            'classe' => $classe,
+            'lignes' => $lignes,
+            'totaux' => [
+                'nb_td' => $totNbTd,
+                'du'    => $totDu,
+                'paye'  => $totPaye,
+                'reste' => $totReste,
+            ],
         ];
     }
 }

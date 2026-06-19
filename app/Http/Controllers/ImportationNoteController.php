@@ -71,7 +71,7 @@ class ImportationNoteController extends Controller
     $filename = 'Notes_classe_' . Str::slug($classe->nom) . '_' . Str::slug($trimestre->nom) . '.xlsx';
 
     // Télécharger le fichier Excel multi-feuilles
-    return Excel::download(new NotesTemplateMultiFeuillesExport($classe_id, $trimestre_id), $filename);
+    return Excel::download(new NotesTemplateMultiFeuillesExport($classe_id, $trimestre_id, $annee_id), $filename);
 }
 
 public function previsualiser(Request $request)

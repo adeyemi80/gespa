@@ -475,9 +475,9 @@ Route::get('/roles/{role}/pdf', [RoleController::class, 'exportPdf'])->name('rol
 
 
 
-Route::get('td/recap/toutes-classes/pdf', [TdRecapController::class, 'pdfToutesClasses']) ->name('td.recap.toutes-classes.pdf');
-Route::get('td/recap/pdf',        [TdRecapController::class, 'pdf'])->name('td.recap.pdf');
-Route::get('td/recap/classe/pdf', [TdRecapController::class, 'pdfClasse'])->name('td.recap.classe.pdf');
+Route::get('/td/recap/pdf', [TdRecapPdfController::class, 'export'])->name('td.recap.pdf');
+Route::get('/td/recap/classe/pdf', [TdRecapPdfController::class, 'classe'])->name('td.recap.classe.pdf');
+Route::get('/td/recap/toutes-classes/pdf', [TdRecapPdfController::class, 'toutesClasses'])->name('td.recap.toutes-classes.pdf');
 Route::get('td-presences/{seance}', [TdPresenceController::class, 'show'])->name('td-presences.show');
 Route::resource('td-tarifs', App\Http\Controllers\TdTarifController::class);
 Route::resource('td-seances', App\Http\Controllers\TdSeanceController::class);

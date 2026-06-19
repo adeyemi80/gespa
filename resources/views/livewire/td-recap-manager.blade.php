@@ -85,9 +85,13 @@
                               class="spinner-border spinner-border-sm me-1"></span>
                         <i class="bi bi-table me-1"></i>Récap Classe
                     </button>
-                      <button wire:click="calculerToutesClasses" class="btn btn-warning w-100">
-    <i class="bi bi-grid me-1"></i> Toutes les classes
-</button>
+                    <button wire:click="calculerToutesClasses"
+                            wire:loading.attr="disabled"
+                            class="btn btn-warning w-100">
+                        <span wire:loading wire:target="calculerToutesClasses"
+                              class="spinner-border spinner-border-sm me-1"></span>
+                        <i class="bi bi-grid me-1"></i> Toutes les classes
+                    </button>
                 </div>
 
             </div>
@@ -127,7 +131,7 @@
     @if(!empty($recapClasse))
         @php
             $labelPeriode = $mode === 'mois'
-                ? 'Mois ' . $mois
+                ? 'Mois ' . $this->moisNom
                 : 'Année ' . ($annees->firstWhere('id', $annee_id)?->libelle ?? $annee_id);
         @endphp
 
@@ -193,13 +197,110 @@
         </div>
     @endif
 
+    {{-- ══════════════════════ TABLEAU RÉCAP TOUTES LES CLASSES ══════════════════════ --}}
+    @if(!empty($recapToutesClasses))
+        @php
+            $labelPeriodeGlobal = $mode === 'mois'
+                ? 'Mois ' . $this->moisNom
+                : 'Année ' . ($annees->firstWhere('id', $annee_id)?->libelle ?? $annee_id);
+            $cycleLabel = $cycle_id
+                ? ($cycles->firstWhere('id', $cycle_id)?->nom ?? $cycles->firstWhere('id', $cycle_id)?->libelle)
+                : 'Tous cycles';
+        @endphp
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center bg-warning">
+                <span class="fw-bold">
+                    <i class="bi bi-grid me-1"></i>
+                    Récapitulatif — {{ $cycleLabel }} — {{ $labelPeriodeGlobal }}
+                </span>
+                <a href="{{ route('td.recap.toutes-classes.pdf', [
+                        'annee_id' => $annee_id,
+                        'cycle_id' => $cycle_id,
+                        'mois'     => $mode === 'mois' ? $mois : null,
+                        'mode'     => $mode,
+                    ]) }}"
+                    target="_blank"
+                    class="btn btn-sm btn-light text-danger">
+                    <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+                </a>
+            </div>
+
+            <div class="card-body">
+                @foreach($recapToutesClasses as $bloc)
+                    <h6 class="fw-bold mt-3 mb-2 text-dark">
+                        <i class="bi bi-bookmark-fill me-1"></i>{{ $bloc['classe']->niveau }}
+                    </h6>
+                    <div class="table-responsive mb-4">
+                        <table class="table table-bordered table-hover table-sm mb-0 align-middle">
+                            <thead class="table-dark text-center">
+                                <tr>
+                                    <th class="text-start" style="min-width:130px">Nom</th>
+                                    <th class="text-start" style="min-width:130px">Prénom</th>
+                                    <th>Nbre TD suivi</th>
+                                    <th>Dû cumulé</th>
+                                    <th>Payé cumulé</th>
+                                    <th>Reste</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($bloc['lignes'] as $ligne)
+                                    <tr class="{{ $ligne['reste'] > 0 ? 'table-warning' : '' }}">
+                                        <td>{{ $ligne['nom'] }}</td>
+                                        <td>{{ $ligne['prenom'] }}</td>
+                                        <td class="text-center">{{ $ligne['nb_td'] }}</td>
+                                        <td class="text-end">{{ number_format($ligne['du'],    0, ',', ' ') }} F</td>
+                                        <td class="text-end text-success fw-semibold">
+                                            {{ number_format($ligne['paye'],  0, ',', ' ') }} F
+                                        </td>
+                                        <td class="text-end fw-bold {{ $ligne['reste'] > 0 ? 'text-danger' : 'text-success' }}">
+                                            {{ number_format($ligne['reste'], 0, ',', ' ') }} F
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                            <tfoot class="table-secondary fw-bold text-center">
+                                <tr>
+                                    <td colspan="2" class="text-start">TOTAUX {{ $bloc['classe']->niveau }}</td>
+                                    <td>{{ $bloc['totaux']['nb_td'] }}</td>
+                                    <td class="text-end">{{ number_format($bloc['totaux']['du'],    0, ',', ' ') }} F</td>
+                                    <td class="text-end text-success">{{ number_format($bloc['totaux']['paye'],  0, ',', ' ') }} F</td>
+                                    <td class="text-end text-danger">{{ number_format($bloc['totaux']['reste'], 0, ',', ' ') }} F</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                @endforeach
+
+                {{-- Totaux généraux toutes classes confondues --}}
+                @php
+                    $totGenNbTd  = collect($recapToutesClasses)->sum(fn($b) => $b['totaux']['nb_td']);
+                    $totGenDu    = collect($recapToutesClasses)->sum(fn($b) => $b['totaux']['du']);
+                    $totGenPaye  = collect($recapToutesClasses)->sum(fn($b) => $b['totaux']['paye']);
+                    $totGenReste = collect($recapToutesClasses)->sum(fn($b) => $b['totaux']['reste']);
+                @endphp
+                <table class="table table-bordered table-sm mb-0">
+                    <tfoot class="table-dark fw-bold text-center">
+                        <tr>
+                            <td colspan="2" class="text-start">TOTAL GÉNÉRAL</td>
+                            <td>{{ $totGenNbTd }}</td>
+                            <td class="text-end">{{ number_format($totGenDu,    0, ',', ' ') }} F</td>
+                            <td class="text-end text-success">{{ number_format($totGenPaye,  0, ',', ' ') }} F</td>
+                            <td class="text-end text-danger">{{ number_format($totGenReste, 0, ',', ' ') }} F</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    @endif
+
     {{-- ══════════════════════ RÉSULTAT ÉLÈVE UNIQUE (inchangé) ══════════════════════ --}}
     @if(!empty($resultat))
         <div class="card shadow-sm mb-3">
             <div class="card-header">
                 {{ $resultat['eleve']->nom }} {{ $resultat['eleve']->prenom }}
                 — {{ $resultat['classe']->niveau }}
-                — Mois {{ $mois }}
+                — Mois {{ $this->moisNom }}
                 <span class="badge bg-secondary ms-2">
                     Mode : {{ $resultat['mode_paiement'] }}
                 </span>

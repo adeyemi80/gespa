@@ -183,7 +183,7 @@ public function show($id)
         . Str::slug($annee->nom) . '.xlsx';
 
     return \Maatwebsite\Excel\Facades\Excel::download(
-        new \App\Exports\NotesTemplateMultiFeuillesExport($classe_id, $trimestre_id),
+        new \App\Exports\NotesTemplateMultiFeuillesExport($classe_id, $trimestre_id, $annee_id),
         $filename
     );
 }
