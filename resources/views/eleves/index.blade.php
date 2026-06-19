@@ -223,7 +223,7 @@
                                                class="btn btn-outline-warning btn-sm" title="Modifier">
                                                 <i class="bi bi-pencil-square"></i>
                                             </a>
-                                            {{--<form action="{{ route('eleves.destroy', $eleve) }}"
+                                            <form action="{{ route('eleves.destroy', $eleve) }}"
                                                   method="POST"
                                                   onsubmit="return confirm('Supprimer cet élève ?')">
                                                 @csrf
@@ -231,7 +231,7 @@
                                                 <button class="btn btn-outline-danger btn-sm" title="Supprimer">
                                                     <i class="bi bi-trash-fill"></i>
                                                 </button>
-                                            </form>--}}
+                                            </form>
                                         </div>
                                     </td>
                                 </tr>

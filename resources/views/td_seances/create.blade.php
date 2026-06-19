@@ -113,7 +113,7 @@
                         </label>
                         <input type="text" name="libelle"
                                class="form-control @error('libelle') is-invalid @enderror"
-                               placeholder="Ex: Algorithmique, POO..."
+                               placeholder="Ex: MATHS - ANGLAIS"
                                value="{{ old('libelle') }}">
                         @error('libelle')
                             <div class="invalid-feedback">{{ $message }}</div>

@@ -97,7 +97,7 @@
 
             @php
                 $cards2 = [
-                    ['route'=>'td.index','color'=>'primary','icon'=>'journal-bookmark-fill','title'=>'Travaux dirigés'],
+                    ['route'=>'td.dirige','color'=>'primary','icon'=>'journal-bookmark-fill','title'=>'Travaux dirigés'],
                     ['route'=>'notes.import.index','color'=>'success','icon'=>'file-earmark-arrow-up','title'=>'Importer une note'],
                     ['route'=>'fiches.index','color'=>'info','icon'=>'file-text','title'=>'Fiche par matière'],
                     ['route'=>'fiches.formulaire','color'=>'warning','icon'=>'files','title'=>'Fiches par classe'],
