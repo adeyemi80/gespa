@@ -18,8 +18,8 @@
             @php
                 $cards2 = [
                     ['route'=>'td.dirige','color'=>'primary','icon'=>'journal-bookmark-fill','title'=>'TRAVAUX DIRIGES'],
-                    ['route'=>'fiches.index','color'=>'info','icon'=>'file-text','title'=>'FICHE DE NOTES PAR MATIERE'],
-                    ['route'=>'fiches.formulaire','color'=>'info','icon'=>'files','title'=>' FICHES DE NOTES DE CLASSE'],
+                    ['route'=>'fiches.formulaire','color'=>'info','icon'=>'file-text','title'=>'FICHE DE NOTES PAR MATIERE'],
+                    ['route'=>'fiches.index','color'=>'info','icon'=>'files','title'=>' FICHES DE NOTES DE CLASSE'],
                      ['route'=>'tests.importForm','color'=>'info','icon'=>'files','title'=>' IMPORTATION DES EPREUVES'],
                 ];
             @endphp
