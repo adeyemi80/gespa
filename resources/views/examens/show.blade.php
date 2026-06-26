@@ -40,25 +40,33 @@
 <a href="{{ route('examens.export.pdf', $examen->id) }}" class="btn btn-danger">
     Export PDF
 </a>
-    <table class="table">
-        <thead>
+    <table class="table table-bordered table-striped">
+    <thead class="table-dark">
+        <tr>
+            <th>#</th>
+            <th>Numéro de Table</th>
+            <th>Nom & Prénom(s)</th>
+            <th>Classe</th>
+        </tr>
+    </thead>
+    <tbody>
+        @forelse($examen->participants as $p)
             <tr>
-                <th>Numéro de Table</th>
-                <th>Nom & Prénom(s)</th>
-                <th>Classe</th>
+                <td>{{ $loop->iteration }}</td>
+                <td>{{ $p->numero_table }}</td>
+                <td>
+                    {{ optional($p->inscription->eleve)->nom }}
+                    {{ optional($p->inscription->eleve)->prenom }}
+                </td>
+                <td>{{ optional($p->inscription->classe)->nom }}</td>
             </tr>
-        </thead>
-        <tbody>
-            @foreach($examen->participants as $p)
-                <tr>
-                    <td>{{ $p->numero_table }}</td>
-                    <td>{{ $p->inscription->eleve->nom ?? '' }}  {{ $p->inscription->eleve->prenom ?? '' }}</td>
-                    <td>{{ $p->inscription->classe->nom ?? '' }}</td>
-                </tr>
-            @endforeach
-        </tbody>
-    </table>
-
+        @empty
+            <tr>
+                <td colspan="4" class="text-center">Aucun participant trouvé</td>
+            </tr>
+        @endforelse
+    </tbody>
+</table>
     <h4>Épreuves</h4>
 
     <table class="table">
