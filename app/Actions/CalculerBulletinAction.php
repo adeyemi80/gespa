@@ -104,18 +104,23 @@ class CalculerBulletinAction
 
         $moyenneT3 = $moyenneTrimestre;
 
-        // Recalculer la moyenne annuelle à partir des 3 trimestres
-        $t1 = (float) ($moyenneT1 ?? 0);
-        $t2 = (float) ($moyenneT2 ?? 0);
-        $t3 = (float) $moyenneTrimestre;
+              // ✅ On collecte uniquement les trimestres ayant une vraie valeur
+$trimestres = array_filter([
+    $moyenneT1,
+    $moyenneT2,
+    $moyenneTrimestre,  // T3 courant — toujours présent ici
+], fn($v) => $v !== null && (float)$v > 0);
 
-        if ($moyenneT1 !== null && $moyenneT2 !== null) {
-            $moyenneAnnuelle = round(($t1 + $t2 + $t3) / 3, 2);
+if (!empty($trimestres)) {
+    $moyenneAnnuelle = round(
+        array_sum($trimestres) / count($trimestres),
+        2
+    );
 
-            if ($moyenne) {
-                $moyenne->update(['moyenne_annuelle' => $moyenneAnnuelle]);
-            }
-        }
+    if ($moyenne) {
+        $moyenne->update(['moyenne_annuelle' => $moyenneAnnuelle]);
+    }
+}
     }
 
     // ── Classe supérieure ───────────────────────────────────────────────────

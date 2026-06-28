@@ -11,6 +11,7 @@ use App\Models\Classe;
 use App\Services\BulletinService;
 use App\Actions\CalculerBulletinAction;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Str;
 
 class BulletinManager extends Component
 {
@@ -168,43 +169,51 @@ class BulletinManager extends Component
         $this->bulletinSelectionne = null;
     }
 
-    public function generatePdfClasse()
-    {
-        if (!$this->annee_id || !$this->classe_id || !$this->trimestre_id) {
-            session()->flash('error', 'Veuillez sélectionner année, classe et trimestre.');
-            return;
-        }
-
-        $this->generatingPdf = true;
-
-        $action   = new CalculerBulletinAction();
-        $bulletins = $action->getBulletinsClasse(
-            $this->classe_id,
-            $this->annee_id,
-            $this->trimestre_id
-        );
-
-        if (empty($bulletins)) {
-            session()->flash('error', 'Aucun bulletin trouvé.');
-            $this->generatingPdf = false;
-            return;
-        }
-
-        $afficherTiret = fn($value) => $value !== null && $value !== '' && $value != 0
-            ? number_format($value, 2) : '-';
-
-        $pdf = Pdf::loadView('bulletins.pdf_classe', [
-            'bulletins'     => collect($bulletins),
-            'afficherTiret' => $afficherTiret,
-        ])->setPaper('A4', 'portrait');
-
-        $this->generatingPdf = false;
-
-        return response()->streamDownload(
-            fn () => print($pdf->output()),
-            'bulletins_classe_' . $this->classe_id . '_Trimestre' . $this->trimestre_id . '.pdf'
-        );
+   public function generatePdfClasse()
+{
+    if (!$this->annee_id || !$this->classe_id || !$this->trimestre_id) {
+        session()->flash('error', 'Veuillez sélectionner année, classe et trimestre.');
+        return;
     }
+
+    $this->generatingPdf = true;
+
+    $action    = new CalculerBulletinAction();
+    $bulletins = $action->getBulletinsClasse(
+        $this->classe_id,
+        $this->annee_id,
+        $this->trimestre_id
+    );
+
+    if (empty($bulletins)) {
+        session()->flash('error', 'Aucun bulletin trouvé.');
+        $this->generatingPdf = false;
+        return;
+    }
+
+    $classe    = \App\Models\Classe::find($this->classe_id);
+    $trimestre = \App\Models\Trimestre::find($this->trimestre_id);
+
+    $nomClasse    = $classe    ? Str::slug($classe->nom,    '_') : $this->classe_id;
+    $nomTrimestre = $trimestre ? Str::slug($trimestre->nom, '_') : $this->trimestre_id;
+
+    $afficherTiret = fn($value) => $value !== null && $value !== '' && $value != 0
+        ? number_format($value, 2) : '-';
+
+    $pdf = Pdf::loadView('bulletins.pdf_classe', [
+        'bulletins'     => collect($bulletins),
+        'afficherTiret' => $afficherTiret,
+    ])->setPaper('A4', 'portrait');
+
+    $this->generatingPdf = false;
+
+    $nomFichier = "bulletins_{$nomTrimestre}_{$nomClasse}.pdf";
+
+    return response()->streamDownload(
+        fn () => print($pdf->output()),
+        $nomFichier
+    );
+}
 
     public function generatePdfIndividuel($inscriptionId)
     {

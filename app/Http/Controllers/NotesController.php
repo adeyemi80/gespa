@@ -7,6 +7,7 @@ use App\Models\Annee;
 use App\Models\Note;
 use App\Models\Eleve;
 use App\Models\Inscription;
+use App\Models\Cycle;
 use App\Models\Classe;
 use App\Models\Matiere;
 use App\Models\Trimestre;
@@ -20,14 +21,66 @@ use Illuminate\Support\Facades\Log;
 class NotesController extends Controller
 {
 
-     public function index()
-    {
-        $notes = Note::with(['eleve', 'matiere', 'classe', 'trimestre'])
-            ->latest()
-            ->paginate(20000);
+     public function index(Request $request)
+{
+    // ── Données initiales pour les selects ────────────────────────────────
+    $annees     = Annee::orderByDesc('id')->get();
+    $cycles     = Cycle::orderBy('id')->get();
+    $trimestres = Trimestre::orderBy('id')->get();
 
-        return view('notes.index', compact('notes'));
+    // Classes : filtrées par cycle si déjà sélectionné (pour conserver l'état après submit)
+    $classes = $request->filled('cycle_id')
+        ? Classe::where('cycle_id', $request->cycle_id)->orderBy('ordre')->get()
+        : Classe::orderBy('ordre')->get();
+
+    // Matières : filtrées par classe si déjà sélectionnée (pour conserver l'état après submit)
+    $matieres = $request->filled('classe_id')
+        ? Matiere::whereHas('classes', fn($q) => $q->where('classe_id', $request->classe_id))->orderBy('nom')->get()
+        : Matiere::orderBy('nom')->get();
+
+    // ── Construction de la query ──────────────────────────────────────────
+    $query = Note::with([
+            'inscription.eleve',
+            'inscription.annee',
+            'matiere',
+            'classe',
+            'trimestre',
+        ])
+        ->latest();
+
+    if ($request->filled('annee_id')) {
+        $query->where('annee_id', $request->annee_id);
     }
+
+    if ($request->filled('trimestre_id')) {
+        $query->where('trimestre_id', $request->trimestre_id);
+    }
+
+    if ($request->filled('cycle_id')) {
+        $query->whereHas('classe', fn($q) =>
+            $q->where('cycle_id', $request->cycle_id)
+        );
+    }
+
+    if ($request->filled('classe_id')) {
+        $query->where('classe_id', $request->classe_id);
+    }
+
+    if ($request->filled('matiere_id')) {
+        $query->where('matiere_id', $request->matiere_id);
+    }
+
+    $notes = $query->paginate(50)->withQueryString();
+
+    return view('notes.index', compact(
+        'notes',
+        'annees',
+        'cycles',
+        'classes',
+        'trimestres',
+        'matieres',
+    ));
+}
 
     public function create()
 {
@@ -107,36 +160,12 @@ public function show($id)
     {
         $note->delete();
         return redirect()->route('notes.index')
-                         ->with('success', 'Classe supprimée avec succès.');
+                         ->with('success', 'Note supprimée avec succès.');
     }
     /**
      * Affiche le formulaire d'importation avec filtrage dynamique.
      */
-    /*public function importer(Request $request)
-    {
-        $annees = Annee::with(['classes','trimestres'])->orderBy('nom')->get();
-
-        // Si une année est sélectionnée via GET
-        $annee_id = $request->query('annee_id');
-        $classes = Classe::orderByNiveau()->get();
-        $trimestres = collect();
-
-        if ($annee_id) {
-            $annee = Annee::with(['classes','trimestres'])->find($annee_id);
-            if ($annee) {
-                $classes = $annee->classes;
-                $trimestres = $annee->trimestres;
-            }
-        }
-
-        return view('notes.import', [
-            'annees' => $annees,
-            'classes' => $classes,
-            'trimestres' => $trimestres,
-            'matieres' => collect(), // Les matières seront chargées dynamiquement par classe via AJAX
-            'annee_id' => $annee_id,
-        ]);
-    }*/
+    
 
     /**
      * Téléchargement du template Excel multi-feuilles pour une classe et un trimestre donnés

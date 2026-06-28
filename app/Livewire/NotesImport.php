@@ -41,12 +41,11 @@ class NotesImport extends Component
     public $fichierName;
     public $feuilleSelectionnee = '';
     public $confirmationImport = false;
-public $messageConfirmation = '';
-public $dataImportTemp = [];
-    public $confirmOverwrite = false; // 🔥 Nouvel état pour confirmation
-public $importMessage = ''; // Message d'alerte
-public $storedPreview = []; // 🔥 Stockage permanent preview
-
+    public $messageConfirmation = '';
+    public $dataImportTemp = [];
+    public $confirmOverwrite = false;
+    public $importMessage = '';
+    public $storedPreview = [];
 
     protected $rules = [
         'annee_id' => 'nullable|integer',
@@ -58,35 +57,36 @@ public $storedPreview = []; // 🔥 Stockage permanent preview
     {
         $this->cycles = Cycle::all();
         $this->annees = Annee::all();
-         $this->feuilleTrouvee = false;
+        $this->feuilleTrouvee = false;
 
         // 🔥 Charger directement les classes du cycle 3
         $this->classes = Classe::where('cycle_id', 3)
             ->orderBy('ordre')
             ->get();
     }
-public function updatedFichier()
-{
-    if ($this->fichier) {
-        $this->fichierPath = $this->fichier->store('imports');
-        $this->fichierName = $this->fichier->getClientOriginalName();
-         $this->fichierPath = $this->fichier->store('imports_notes');
-    }
-}
-public function viderFichier()
-{
-    if ($this->fichierPath &&
-        Storage::exists($this->fichierPath)) {
 
-        Storage::delete($this->fichierPath);
+    // ✅ CORRIGÉ : un seul store, utilisation de Storage::path()
+    public function updatedFichier()
+    {
+        if ($this->fichier) {
+            $this->fichierName = $this->fichier->getClientOriginalName();
+            $this->fichierPath = $this->fichier->store('imports_notes');
+        }
     }
 
-    $this->reset([
-        'fichier',
-        'fichierName',
-        'fichierPath',
-    ]);
-}
+    public function viderFichier()
+    {
+        if ($this->fichierPath && Storage::exists($this->fichierPath)) {
+            Storage::delete($this->fichierPath);
+        }
+
+        $this->reset([
+            'fichier',
+            'fichierName',
+            'fichierPath',
+        ]);
+    }
+
     public function updated($propertyName)
     {
         if (in_array($propertyName, ['annee_id', 'classe_id', 'matiere_id', 'trimestre_id'])) {
@@ -135,47 +135,45 @@ public function viderFichier()
 
         $this->matiere_id = null;
     }
-private function detecterTrimestre($texte)
-{
-    $texte = $this->normaliserTexte($texte);
 
-    if (str_contains($texte, 'premier')) return 1;
-    if (str_contains($texte, 'deuxieme')) return 2;
-    if (str_contains($texte, 'troisieme')) return 3;
+    private function detecterTrimestre($texte)
+    {
+        $texte = $this->normaliserTexte($texte);
 
-    // variantes possibles
-    if (str_contains($texte, '1er')) return 1;
-    if (str_contains($texte, '2eme')) return 2;
-    if (str_contains($texte, '3eme')) return 3;
+        if (str_contains($texte, 'premier')) return 1;
+        if (str_contains($texte, 'deuxieme')) return 2;
+        if (str_contains($texte, 'troisieme')) return 3;
 
-    return null;
-}
+        if (str_contains($texte, '1er')) return 1;
+        if (str_contains($texte, '2eme')) return 2;
+        if (str_contains($texte, '3eme')) return 3;
 
-private function getNumeroTrimestre($nom)
-{
-    $nom = $this->normaliserTexte($nom);
+        return null;
+    }
 
-    if (str_contains($nom, 'premier')) return 1;
-    if (str_contains($nom, 'deuxieme')) return 2;
-    if (str_contains($nom, 'troisieme')) return 3;
+    private function getNumeroTrimestre($nom)
+    {
+        $nom = $this->normaliserTexte($nom);
 
-    return null;
-}
+        if (str_contains($nom, 'premier')) return 1;
+        if (str_contains($nom, 'deuxieme')) return 2;
+        if (str_contains($nom, 'troisieme')) return 3;
 
+        return null;
+    }
 
-
-private function normaliserTexte($texte)
-{
-    $texte = strtolower($texte);
-    $texte = iconv('UTF-8', 'ASCII//TRANSLIT', $texte);
-    $texte = str_replace(['-', '_'], ' ', $texte);
-    $texte = preg_replace('/[^a-z0-9 ]/', '', $texte);
-    $texte = preg_replace('/\s+/', ' ', $texte);
-    return trim($texte);
-}
+    private function normaliserTexte($texte)
+    {
+        $texte = strtolower($texte);
+        $texte = iconv('UTF-8', 'ASCII//TRANSLIT', $texte);
+        $texte = str_replace(['-', '_'], ' ', $texte);
+        $texte = preg_replace('/[^a-z0-9 ]/', '', $texte);
+        $texte = preg_replace('/\s+/', ' ', $texte);
+        return trim($texte);
+    }
 
     /**
-     * 🔧 Normaliser nom feuille (Anglais → "Anglais")
+     * 🔧 Normaliser nom feuille
      */
     private function normaliserNomFeuille($nomMatiere)
     {
@@ -185,448 +183,408 @@ private function normaliserTexte($texte)
     /**
      * 📊 Traitement des données Excel
      */
-    /**
- * 📊 Traitement : 1 ou 2 notes sur 3 = Import OK
- */
-private function processerDonnees($rows)
-{
-    $this->headers = $rows[0] ?? [];
-    unset($rows[0]);
-    $this->preview = [];
+    private function processerDonnees($rows)
+    {
+        $this->headers = $rows[0] ?? [];
+        unset($rows[0]);
+        $this->preview = [];
 
-    $matiere = Matiere::find($this->matiere_id);
-    $classe = Classe::find($this->classe_id);
-    $trimestre = Trimestre::find($this->trimestre_id);
+        $matiere = Matiere::find($this->matiere_id);
+        $classe = Classe::find($this->classe_id);
+        $trimestre = Trimestre::find($this->trimestre_id);
 
-    foreach ($rows as $i => $row) {
+        foreach ($rows as $i => $row) {
 
-        // 🔒 Sécurité ligne vide
-        if (empty($row) || count($row) < 3) continue;
+            if (empty($row) || count($row) < 3) continue;
+            if (count($this->headers) !== count($row)) continue;
 
-        // 🔒 Sécurité colonnes
-        if (count($this->headers) !== count($row)) continue;
+            $dataRow = array_combine($this->headers, $row);
+            $matricule = trim($dataRow['Matricule'] ?? '');
+            $errors = [];
 
-        $dataRow = array_combine($this->headers, $row);
+            // =========================
+            // 🔍 MATRICULE
+            // =========================
+            if (!$matricule) {
+                $errors[] = "Matricule manquant";
 
-        $matricule = trim($dataRow['Matricule'] ?? '');
-        $errors = [];
+                $this->preview[] = [
+                    'data'    => $dataRow,
+                    'notes'   => [],
+                    'errors'  => $errors,
+                    'nbNotes' => 0,
+                    'statut'  => 'Invalide'
+                ];
 
-        // =========================
-        // 🔍 MATRICULE
-        // =========================
-        if (!$matricule) {
-            $errors[] = "Matricule manquant";
+                continue;
+            }
 
-            $this->preview[] = [
-                'data' => $dataRow,
-                'notes' => [],
-                'errors' => $errors,
-                'nbNotes' => 0,
-                'statut' => 'Invalide'
-            ];
+            $eleve = Eleve::where('matricule', $matricule)->first();
 
-            continue;
-        }
-
-        $eleve = Eleve::where('matricule', $matricule)->first();
-
-        if (!$eleve) {
-            $errors[] = "❌ Élève introuvable";
-        } else {
-
-            $inscription = Inscription::where([
-                'eleve_id' => $eleve->id,
-                'classe_id' => $this->classe_id,
-                'annee_id' => $this->annee_id
-            ])->first();
-
-            if (!$inscription) {
-                $errors[] = "❌ Pas inscrit en classe";
+            if (!$eleve) {
+                $errors[] = "❌ Élève introuvable";
             } else {
 
-                // =========================
-                // 🔥 DOUBLON
-                // =========================
-                $exists = Note::where([
-                    'inscription_id' => $inscription->id,
-                    'matiere_id' => $this->matiere_id,
-                    'trimestre_id' => $this->trimestre_id,
-                ])->exists();
+                $inscription = Inscription::where([
+                    'eleve_id'  => $eleve->id,
+                    'classe_id' => $this->classe_id,
+                    'annee_id'  => $this->annee_id
+                ])->first();
 
-                if ($exists && !$this->confirmOverwrite) {
-
-                    // 🔥 sauvegarde propre preview
-                    $this->storedPreview = [...$this->preview];
-
-                    $this->importMessage =
-                        "⚠️ Les notes de {$matiere->nom} {$classe->nom}, {$trimestre->nom} existent déjà. Voulez-vous écraser ?";
-
-                    session()->flash('warning', $this->importMessage);
-
-                    // ❗ on continue le traitement pour garder preview cohérent
-                    $errors[] = "⚠️ Doublon détecté";
-                }
-            }
-        }
-
-        // =========================
-        // 📊 NOTES
-        // =========================
-        $notesDisponibles = [];
-        $champsNotes = ['Moyenne Interrogation', 'Devoir1', 'Devoir2'];
-
-        foreach ($champsNotes as $champ) {
-
-            $valeur = $dataRow[$champ] ?? null;
-
-            if ($valeur !== null && $valeur !== '' && $valeur !== '0') {
-
-                $valeurFloat = (float)$valeur;
-
-                if ($valeurFloat >= 0 && $valeurFloat <= 20) {
-                    $notesDisponibles[$champ] = $valeurFloat;
+                if (!$inscription) {
+                    $errors[] = "❌ Pas inscrit en classe";
                 } else {
-                    $errors[] = "$champ invalide ($valeur)";
+
+                    $exists = Note::where([
+                        'inscription_id' => $inscription->id,
+                        'matiere_id'     => $this->matiere_id,
+                        'trimestre_id'   => $this->trimestre_id,
+                    ])->exists();
+
+                    if ($exists && !$this->confirmOverwrite) {
+
+                        $this->storedPreview = [...$this->preview];
+
+                        $this->importMessage =
+                            "⚠️ Les notes de {$matiere->nom} {$classe->nom}, {$trimestre->nom} existent déjà. Voulez-vous écraser ?";
+
+                        session()->flash('warning', $this->importMessage);
+
+                        $errors[] = "⚠️ Doublon détecté";
+                    }
                 }
             }
+
+            // =========================
+            // 📊 NOTES
+            // =========================
+            $notesDisponibles = [];
+            $champsNotes = ['Moyenne Interrogation', 'Devoir1', 'Devoir2'];
+
+            foreach ($champsNotes as $champ) {
+
+                $valeur = $dataRow[$champ] ?? null;
+
+                if ($valeur !== null && $valeur !== '' && $valeur !== '0') {
+
+                    $valeurFloat = (float) $valeur;
+
+                    if ($valeurFloat >= 0 && $valeurFloat <= 20) {
+                        $notesDisponibles[$champ] = $valeurFloat;
+                    } else {
+                        $errors[] = "$champ invalide ($valeur)";
+                    }
+                }
+            }
+
+            $nbNotesValides = count($notesDisponibles);
+
+            $dataRow['_statut'] =
+                $nbNotesValides === 0 ? 'Sans note' :
+                ($nbNotesValides < 3 ? "{$nbNotesValides}/3" : 'Complet');
+
+            $this->preview[] = [
+                'data'    => $dataRow,
+                'notes'   => $notesDisponibles,
+                'errors'  => $errors,
+                'nbNotes' => $nbNotesValides,
+                'statut'  => $dataRow['_statut']
+            ];
         }
 
-        $nbNotesValides = count($notesDisponibles);
-
-        // =========================
-        // 📌 STATUT
-        // =========================
-        $dataRow['_statut'] =
-            $nbNotesValides === 0 ? 'Sans note' :
-            ($nbNotesValides < 3 ? "{$nbNotesValides}/3" : 'Complet');
-
-        // =========================
-        // 📦 PREVIEW FINAL
-        // =========================
-        $this->preview[] = [
-            'data' => $dataRow,
-            'notes' => $notesDisponibles,
-            'errors' => $errors,
-            'nbNotes' => $nbNotesValides,
-            'statut' => $dataRow['_statut']
-        ];
+        $this->storedPreview = [...$this->preview];
     }
 
-    // =========================
-    // 🔥 SAUVEGARDE FINALE
-    // =========================
-    $this->storedPreview = [...$this->preview];
-}
     /**
      * 🔥 PREVIEW FICHIER
      */
-public function previewFile()
-{
-    // 🔄 Nettoyage des champs vides
-    foreach (['annee_id', 'classe_id', 'trimestre_id', 'matiere_id'] as $field) {
-        if ($this->$field === "") {
-            $this->$field = null;
-        }
-    }
-
-    // ✅ Validation
-    $this->validate([
-        'annee_id'     => 'required|integer|exists:annees,id',
-        'classe_id'    => 'required|integer|exists:classes,id',
-        'trimestre_id' => 'required|integer|exists:trimestres,id',
-        'matiere_id'   => 'required|integer|exists:matieres,id',
-        'fichier'      => 'nullable|file|mimes:xlsx', // 🔥 important
-    ]);
-
-    try {
-
-        // 🔥 Vérifier qu’un fichier est déjà stocké
-        if (!$this->fichierPath) {
-            session()->flash('error', "❌ Aucun fichier chargé");
-            return;
-        }
-
-        $matiere = Matiere::findOrFail($this->matiere_id);
-        $trimestre = Trimestre::findOrFail($this->trimestre_id);
-
-        $nomFeuilleRecherche = strtolower(trim($matiere->nom));
-
-        // 📂 Chemin réel du fichier (CORRIGÉ)
-        $cheminFichier = storage_path('app/' . $this->fichierPath);
-
-        if (!file_exists($cheminFichier)) {
-            session()->flash('error', "❌ Fichier introuvable sur le serveur");
-            return;
-        }
-
-        // 📌 Chargement Excel (CORRIGÉ)
-        $spreadsheet = IOFactory::load($cheminFichier);
-
-        $feuilleTrouvee = null;
-
-        // 🔍 Recherche feuille par matière
-        foreach ($spreadsheet->getWorksheetIterator() as $sheet) {
-            $nomFeuille = strtolower(trim($sheet->getTitle()));
-
-            if (str_contains($nomFeuille, $nomFeuilleRecherche)) {
-                $feuilleTrouvee = $sheet;
-                break;
+    public function previewFile()
+    {
+        // 🔄 Nettoyage des champs vides
+        foreach (['annee_id', 'classe_id', 'trimestre_id', 'matiere_id'] as $field) {
+            if ($this->$field === "") {
+                $this->$field = null;
             }
         }
 
-        // ❌ Feuille non trouvée
-        if (!$feuilleTrouvee) {
-            session()->flash('error', "❌ Feuille '{$matiere->nom}' introuvable dans le fichier");
-            return;
-        }
+        // ✅ Validation
+        $this->validate([
+            'annee_id'     => 'required|integer|exists:annees,id',
+            'classe_id'    => 'required|integer|exists:classes,id',
+            'trimestre_id' => 'required|integer|exists:trimestres,id',
+            'matiere_id'   => 'required|integer|exists:matieres,id',
+            'fichier'      => 'nullable|file|mimes:xlsx',
+        ]);
 
-        // 🔥 Nom feuille + nom fichier (CORRIGÉ)
-        $nomFeuille = $feuilleTrouvee->getTitle();
-        $nomFichier = $this->fichierName ?? 'fichier inconnu';
+        try {
 
-        // 🔢 Détection trimestre
-        $numeroSelectionne = $this->getNumeroTrimestre($trimestre->nom);
-
-        $trimestreFeuille = $this->detecterTrimestre($nomFeuille);
-        $trimestreFichier = $this->detecterTrimestre($nomFichier);
-
-        $trimestreDetecte = $trimestreFeuille ?? $trimestreFichier;
-
-        // ❌ Impossible détecter
-        if (!$trimestreDetecte) {
-            session()->flash('error', "❌ Impossible de détecter le trimestre du fichier");
-            return;
-        }
-
-        // ❌ Mauvais trimestre
-        if ($trimestreDetecte !== $numeroSelectionne) {
-
-            $labels = [
-                1 => 'Premier Trimestre',
-                2 => 'Deuxième Trimestre',
-                3 => 'Troisième Trimestre'
-            ];
-
-            session()->flash(
-                'error',
-                "❌ ERREUR : Ce fichier correspond au {$labels[$trimestreDetecte]} alors que vous avez sélectionné {$trimestre->nom}"
-            );
-
-            $this->preview = [];
-            return;
-        }
-
-        // 📊 Lecture données
-        $rows = $feuilleTrouvee->toArray();
-
-        if (empty($rows)) {
-            session()->flash('error', "❌ La feuille est vide");
-            return;
-        }
-
-        // 🔍 Vérification colonnes (BONUS SÉCURITÉ)
-        $headers = $rows[0] ?? [];
-
-        $requiredHeaders = ['Matricule', 'Moyenne Interrogation', 'Devoir1', 'Devoir2'];
-
-        foreach ($requiredHeaders as $header) {
-            if (!in_array($header, $headers)) {
-                session()->flash('error', "❌ Colonne manquante : $header");
+            // ✅ CORRIGÉ : vérification via Storage::exists()
+            if (!$this->fichierPath || !Storage::exists($this->fichierPath)) {
+                session()->flash('error', "❌ Aucun fichier chargé ou fichier introuvable sur le serveur");
                 return;
             }
+
+            $matiere  = Matiere::findOrFail($this->matiere_id);
+            $trimestre = Trimestre::findOrFail($this->trimestre_id);
+
+            $nomFeuilleRecherche = strtolower(trim($matiere->nom));
+
+            // ✅ CORRIGÉ : Storage::path() au lieu de storage_path('app/...')
+            $cheminFichier = Storage::path($this->fichierPath);
+
+            if (!file_exists($cheminFichier)) {
+                session()->flash('error', "❌ Fichier introuvable sur le serveur");
+                return;
+            }
+
+            // 📌 Chargement Excel
+            $spreadsheet = IOFactory::load($cheminFichier);
+
+            $feuilleTrouvee = null;
+
+            // 🔍 Recherche feuille par matière
+            foreach ($spreadsheet->getWorksheetIterator() as $sheet) {
+                $nomFeuille = strtolower(trim($sheet->getTitle()));
+
+                if (str_contains($nomFeuille, $nomFeuilleRecherche)) {
+                    $feuilleTrouvee = $sheet;
+                    break;
+                }
+            }
+
+            // ❌ Feuille non trouvée
+            if (!$feuilleTrouvee) {
+                session()->flash('error', "❌ Feuille '{$matiere->nom}' introuvable dans le fichier");
+                return;
+            }
+
+            $nomFeuille = $feuilleTrouvee->getTitle();
+            $nomFichier = $this->fichierName ?? 'fichier inconnu';
+
+            // 🔢 Détection trimestre
+            $numeroSelectionne = $this->getNumeroTrimestre($trimestre->nom);
+
+            $trimestreFeuille  = $this->detecterTrimestre($nomFeuille);
+            $trimestreFichier  = $this->detecterTrimestre($nomFichier);
+
+            $trimestreDetecte = $trimestreFeuille ?? $trimestreFichier;
+
+            if (!$trimestreDetecte) {
+                session()->flash('error', "❌ Impossible de détecter le trimestre du fichier");
+                return;
+            }
+
+            if ($trimestreDetecte !== $numeroSelectionne) {
+
+                $labels = [
+                    1 => 'Premier Trimestre',
+                    2 => 'Deuxième Trimestre',
+                    3 => 'Troisième Trimestre'
+                ];
+
+                session()->flash(
+                    'error',
+                    "❌ ERREUR : Ce fichier correspond au {$labels[$trimestreDetecte]} alors que vous avez sélectionné {$trimestre->nom}"
+                );
+
+                $this->preview = [];
+                return;
+            }
+
+            // 📊 Lecture données
+            $rows = $feuilleTrouvee->toArray();
+
+            if (empty($rows)) {
+                session()->flash('error', "❌ La feuille est vide");
+                return;
+            }
+
+            $headers = $rows[0] ?? [];
+            $requiredHeaders = ['Matricule', 'Moyenne Interrogation', 'Devoir1', 'Devoir2'];
+
+            foreach ($requiredHeaders as $header) {
+                if (!in_array($header, $headers)) {
+                    session()->flash('error', "❌ Colonne manquante : $header");
+                    return;
+                }
+            }
+
+            // 🔄 Traitement
+            $this->processerDonnees($rows);
+
+            $this->feuilleSelectionnee = $nomFeuille;
+
+            session()->flash('success', "✅ Fichier chargé avec succès : {$nomFichier}");
+
+        } catch (\Exception $e) {
+
+            Log::error('NotesImport::previewFile error', ['message' => $e->getMessage()]);
+            session()->flash('error', "❌ Erreur : " . $e->getMessage());
         }
-
-        // 🔄 Traitement
-        $this->processerDonnees($rows);
-
-        // 📌 Stockage nom feuille
-        $this->feuilleSelectionnee = $nomFeuille;
-
-        session()->flash('success', "✅ Fichier chargé avec succès : {$nomFichier}");
-
-    } catch (\Exception $e) {
-
-        session()->flash('error', "❌ Erreur : " . $e->getMessage());
     }
-}
-
-    /**
-     * 📊 TRAITEMENT
-     */
-
 
     /**
      * 💾 IMPORT
      */
-
-public function importer()
-{
-    // 🔒 Sécurité : éviter import vide
-    if (empty($this->preview)) {
-        session()->flash('error', '❌ Aucune donnée à importer');
-        return;
-    }
-
-    $imported = 0;
-    $skipped = 0;
-
-    foreach ($this->preview as $row) {
-
-        // 🔒 Sécurité structure
-        if (!isset($row['data'])) {
-            $skipped++;
-            continue;
+    public function importer()
+    {
+        if (empty($this->preview)) {
+            session()->flash('error', '❌ Aucune donnée à importer');
+            return;
         }
 
-        $data = $row['data'];
-        $notes = $row['notes'] ?? [];
+        $imported = 0;
+        $skipped  = 0;
 
-        $matricule = $data['Matricule'] ?? null;
+        foreach ($this->preview as $row) {
 
-        if (!$matricule) {
-            $skipped++;
-            continue;
-        }
+            if (!isset($row['data'])) {
+                $skipped++;
+                continue;
+            }
 
-        $eleve = Eleve::where('matricule', $matricule)->first();
+            $data  = $row['data'];
+            $notes = $row['notes'] ?? [];
 
-        if (!$eleve) {
-            $skipped++;
-            continue;
-        }
+            $matricule = $data['Matricule'] ?? null;
 
-        $inscription = Inscription::where([
-            'eleve_id' => $eleve->id,
-            'classe_id' => $this->classe_id,
-            'annee_id' => $this->annee_id
-        ])->first();
+            if (!$matricule) {
+                $skipped++;
+                continue;
+            }
 
-        if (!$inscription) {
-            $skipped++;
-            continue;
-        }
+            $eleve = Eleve::where('matricule', $matricule)->first();
 
-        // ✅ Notes
-        $interro = $notes['Moyenne Interrogation'] ?? null;
-        $d1 = $notes['Devoir1'] ?? null;
-        $d2 = $notes['Devoir2'] ?? null;
+            if (!$eleve) {
+                $skipped++;
+                continue;
+            }
 
-        $moyenne = $this->calculerMoyenne($interro, $d1, $d2);
-
-        // 🔍 Vérifier si note existe déjà
-        $note = Note::where([
-            'inscription_id' => $inscription->id,
-            'matiere_id' => $this->matiere_id,
-            'trimestre_id' => $this->trimestre_id,
-        ])->first();
-
-        if ($note) {
-            // ✅ UPDATE SANS ÉCRASER certaines données sensibles
-            $note->update([
-                'moyenne_interro' => $interro,
-                'devoir1' => $d1,
-                'devoir2' => $d2,
-                'moyenne_matiere' => $moyenne,
-
-                // ⚠️ uniquement si tu veux auto recalculer
-                'appreciation' => $this->genererAppreciation($moyenne),
-            ]);
-        } else {
-            // ✅ CREATE
-            Note::create([
-                'inscription_id' => $inscription->id,
+            $inscription = Inscription::where([
+                'eleve_id'  => $eleve->id,
                 'classe_id' => $this->classe_id,
-                'matiere_id' => $this->matiere_id,
-                'trimestre_id' => $this->trimestre_id,
-                'annee_id' => $this->annee_id,
-                'moyenne_interro' => $interro,
-                'devoir1' => $d1,
-                'devoir2' => $d2,
-                'moyenne_matiere' => $moyenne,
-                'appreciation' => $this->genererAppreciation($moyenne),
-            ]);
+                'annee_id'  => $this->annee_id
+            ])->first();
+
+            if (!$inscription) {
+                $skipped++;
+                continue;
+            }
+
+            $interro = $notes['Moyenne Interrogation'] ?? null;
+            $d1      = $notes['Devoir1'] ?? null;
+            $d2      = $notes['Devoir2'] ?? null;
+
+            $moyenne = $this->calculerMoyenne($interro, $d1, $d2);
+
+            $note = Note::where([
+                'inscription_id' => $inscription->id,
+                'matiere_id'     => $this->matiere_id,
+                'trimestre_id'   => $this->trimestre_id,
+            ])->first();
+
+            if ($note) {
+                $note->update([
+                    'moyenne_interro'  => $interro,
+                    'devoir1'          => $d1,
+                    'devoir2'          => $d2,
+                    'moyenne_matiere'  => $moyenne,
+                    'appreciation'     => $this->genererAppreciation($moyenne),
+                ]);
+            } else {
+                Note::create([
+                    'inscription_id'  => $inscription->id,
+                    'classe_id'       => $this->classe_id,
+                    'matiere_id'      => $this->matiere_id,
+                    'trimestre_id'    => $this->trimestre_id,
+                    'annee_id'        => $this->annee_id,
+                    'moyenne_interro' => $interro,
+                    'devoir1'         => $d1,
+                    'devoir2'         => $d2,
+                    'moyenne_matiere' => $moyenne,
+                    'appreciation'    => $this->genererAppreciation($moyenne),
+                ]);
+            }
+
+            $imported++;
         }
 
-        $imported++;
+        // ✅ Nettoyage après import
+        $this->preview = [];
+        $this->reset(['confirmOverwrite']);
+
+        session()->flash('success', "✅ {$imported} importées, {$skipped} ignorées");
     }
 
-    // ✅ Nettoyage propre (SANS casser preview trop tôt)
-    $this->preview = [];
-
-    $this->reset([
-        'confirmOverwrite'
-    ]);
-
-    session()->flash('success', "✅ {$imported} importées, {$skipped} ignorées");
-}
-    
     private function genererAppreciation($moyenne)
-{
-    if ($moyenne === null) return null;
+    {
+        if ($moyenne === null) return null;
 
-    if ($moyenne >= 18) return "Excellent";
-    if ($moyenne >= 16) return "Très bien";
-    if ($moyenne >= 14) return "Bien";
-    if ($moyenne >= 12) return "Assez bien";
-    if ($moyenne >= 10) return "Passable";
-    if ($moyenne >= 8) return "Insuffisant";
-    if ($moyenne >= 6) return "Faible";
-    if ($moyenne >= 4) return "Très Faible";
+        if ($moyenne >= 18) return "Excellent";
+        if ($moyenne >= 16) return "Très bien";
+        if ($moyenne >= 14) return "Bien";
+        if ($moyenne >= 12) return "Assez bien";
+        if ($moyenne >= 10) return "Passable";
+        if ($moyenne >= 8)  return "Insuffisant";
+        if ($moyenne >= 6)  return "Faible";
+        if ($moyenne >= 4)  return "Très Faible";
 
-    return "Médiocre";
-}
+        return "Médiocre";
+    }
 
     private function calculerMoyenne($a, $b, $c)
     {
         $vals = array_filter([$a, $b, $c], fn($v) => $v !== null);
         return count($vals) ? round(array_sum($vals) / count($vals), 2) : null;
     }
-// 🔥 Méthode appelée par bouton "Oui, écraser"
-public function confirmOverwrite()
-{
-    $this->confirmOverwrite = true;
-    $this->importer(); // Relance l'import avec écrasement
-}
 
-// 🔥 Méthode appelée par bouton "Annuler"
-public function cancelImport()
-{
-    $this->reset(['preview', 'confirmOverwrite', 'importMessage', 'storedPreview']);
-    session()->flash('info', '❌ Import annulé');
-}
-
-public function confirmerRemplacement()
-{
-    if (empty($this->storedPreview)) {
-        session()->flash('error', '❌ Données perdues');
-        return;
+    // 🔥 Bouton "Oui, écraser"
+    public function confirmOverwrite()
+    {
+        $this->confirmOverwrite = true;
+        $this->importer();
     }
 
-    $this->preview = $this->storedPreview;
-    $this->confirmOverwrite = true;
+    // 🔥 Bouton "Annuler"
+    public function cancelImport()
+    {
+        $this->reset(['preview', 'confirmOverwrite', 'importMessage', 'storedPreview']);
+        session()->flash('info', '❌ Import annulé');
+    }
 
-    $this->importer();
-}
+    public function confirmerRemplacement()
+    {
+        if (empty($this->storedPreview)) {
+            session()->flash('error', '❌ Données perdues');
+            return;
+        }
 
-       public function downloadTemplate()
-{
-    $this->validate([
-        'annee_id' => 'required|integer',
-        'classe_id' => 'required|integer',
-        'trimestre_id' => 'required|integer',
-    ]);
-    return redirect()->route('notes.template', [
-        'annee_id' => $this->annee_id,
-        'classe_id' => $this->classe_id,
-        'trimestre_id' => $this->trimestre_id,
-    ]);
-}
+        $this->preview = $this->storedPreview;
+        $this->confirmOverwrite = true;
+
+        $this->importer();
+    }
+
+    public function downloadTemplate()
+    {
+        $this->validate([
+            'annee_id'     => 'required|integer',
+            'classe_id'    => 'required|integer',
+            'trimestre_id' => 'required|integer',
+        ]);
+
+        return redirect()->route('notes.template', [
+            'annee_id'     => $this->annee_id,
+            'classe_id'    => $this->classe_id,
+            'trimestre_id' => $this->trimestre_id,
+        ]);
+    }
 
     public function render()
     {
         return view('livewire.notes-import', [
-            'selectedClasse' => Classe::find($this->classe_id),
-            'classes' => $this->classes, // ✅ CORRECTION IMPORTANTE
+            'selectedClasse'  => Classe::find($this->classe_id),
+            'classes'         => $this->classes,
             'selectedMatiere' => Matiere::find($this->matiere_id),
         ]);
     }

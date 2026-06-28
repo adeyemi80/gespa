@@ -110,24 +110,32 @@ class MoyenneService
     }
 
     public function calculerMoyenneAnnuelle(int $inscriptionId): void
-    {
-        $moyennes = Moyenne::where('inscription_id', $inscriptionId)
-            ->whereIn('trimestre_id', [1, 2, 3])
-            ->where('moyenne_trimestrielle', '>', 0)
-            ->get();
+{
+    $moyennes = Moyenne::where('inscription_id', $inscriptionId)
+        ->whereIn('trimestre_id', [1, 2, 3])
+        ->where('moyenne_trimestrielle', '>', 0)
+        ->get();
 
-        if ($moyennes->isEmpty()) {
-            return;
-        }
-
-        // ✅ Moyenne des 3 trimestres (pas avg() qui exclut les 0)
-        $moyenneAnnuelle = round($moyennes->avg('moyenne_trimestrielle'), 2);
-
-        Moyenne::where([
-            'inscription_id' => $inscriptionId,
-            'trimestre_id'   => 3,
-        ])->update(['moyenne_annuelle' => $moyenneAnnuelle]);
+    if ($moyennes->isEmpty()) {
+        return;
     }
+
+    $nbTrimestres = $moyennes->count(); // 1, 2 ou 3 trimestres réels
+
+    // ✅ Diviseur = nombre de trimestres ayant une moyenne > 0
+    // Cas 3 trimestres : somme / 3
+    // Cas 2 trimestres : somme / 2  (pas de zéro pour le trimestre manquant)
+    // Cas 1 trimestre  : somme / 1
+    $moyenneAnnuelle = round(
+        $moyennes->sum('moyenne_trimestrielle') / $nbTrimestres,
+        2
+    );
+
+    Moyenne::where([
+        'inscription_id' => $inscriptionId,
+        'trimestre_id'   => 3,
+    ])->update(['moyenne_annuelle' => $moyenneAnnuelle]);
+}
 
     // ✅ Alias utilisé par RecalculerMoyennesListener
     public function mettreAJourMoyennesParInscription(int $inscriptionId): void
