@@ -178,6 +178,7 @@ Route::get('/tableau/examen', [App\Http\Controllers\TableauController::class, 'p
 Route::get('/tableau/emplois', [App\Http\Controllers\TableauController::class, 'emplois'])->name('tableau.emplois');
 Route::get('/tableau/planning', [App\Http\Controllers\TableauController::class, 'planning'])->name('tableau.planning');
 Route::get('/tableau/annees', [App\Http\Controllers\TableauController::class, 'annees'])->name('tableau.annees');
+Route::get('/tableau/finances', [App\Http\Controllers\TableauController::class, 'finances'])->name('tableau.finances');
 Route::get('/tableau/utilisateur', [App\Http\Controllers\TableauController::class, 'utilisateur'])->name('tableau.utilisateur');
 Route::middleware(['auth'])->group(function () {Route::get('/tableau/accueil', [TableauController::class, 'accueil'])->name('tableau.accueil');});
 Route::get('/tableau/progtd', [App\Http\Controllers\TableauController::class, 'progtd'])->name('tableau.progtd');

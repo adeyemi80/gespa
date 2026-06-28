@@ -18,14 +18,14 @@
             </a>
         </li>
         <li>
-            <a href="{{ route('paiements.index') }}" class="nav-link text-white">
-                <i class="bi bi-wallet2 me-2"></i> Historique des paiements 
+            <a href="{{ route('tableau.finances') }}" class="nav-link text-white">
+                <i class="bi bi-wallet2 me-2"></i> FINANCES
             </a>
         </li>
-        <li>
+       {{-- <li>
             <a href="{{ route('paiements.historique') }}" class="nav-link text-white">
                 <i class="bi bi-bar-chart-line me-2"></i> Paiements par | jour | Mois | Année
             </a>
-        </li>
+        </li>--}}
     </ul>
 </div>
