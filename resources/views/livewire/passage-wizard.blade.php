@@ -51,19 +51,44 @@
     </div>
 
     {{-- ALERTS --}}
-    @if(session()->has('error'))
-        <div class="alert alert-danger shadow-sm">
-            {{ session('error') }}
-        </div>
-    @endif
+    @if ($errorMessage)
+    <div
+        wire:key="alert-error-{{ md5($errorMessage) }}"
+        x-data="{ show: true }"
+        x-init="setTimeout(() => show = false, 15000)"
+        x-show="show"
+        x-transition
+        class="alert alert-danger"
+    >
+        {{ $errorMessage }}
+    </div>
+@endif
 
-    @if(session()->has('success'))
-        <div class="alert alert-success shadow-sm">
-            {{ session('success') }}
-        </div>
-    @endif
+@if ($warningMessage)
+    <div
+        wire:key="alert-warning-{{ md5($warningMessage) }}"
+        x-data="{ show: true }"
+        x-init="setTimeout(() => show = false, 15000)"
+        x-show="show"
+        x-transition
+        class="alert alert-warning"
+    >
+        {{ $warningMessage }}
+    </div>
+@endif
 
-
+@if ($successMessage)
+    <div
+        wire:key="alert-success-{{ md5($successMessage) }}"
+        x-data="{ show: true }"
+        x-init="setTimeout(() => show = false, 15000)"
+        x-show="show"
+        x-transition
+        class="alert alert-success"
+    >
+        {{ $successMessage }}
+    </div>
+@endif
     {{-- ================= STEP 1 ================= --}}
     @if($step == 1)
 

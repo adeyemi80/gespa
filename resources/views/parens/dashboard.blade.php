@@ -440,109 +440,110 @@
                     @endforeach
 
                 </div>
+{{-- RESUME --}}
+@if($trimestre == 3)
+    <div class="row mt-4">
 
-                {{-- RESUME --}}
-                <div class="row mt-4">
+        <div class="col-md-6">
 
-                    <div class="col-md-6">
+            <div class="card border-0 shadow-sm bg-light resume-box">
 
-                        <div class="card border-0 shadow-sm bg-light resume-box">
+                <div class="card-body">
 
-                            <div class="card-body">
+                    <h5 class="fw-bold mb-4">
 
-                                <h5 class="fw-bold mb-4">
+                        📌 Résumé du trimestre
 
-                                    📌 Résumé du trimestre
+                    </h5>
 
-                                </h5>
+                    <p>
 
-                                <p>
+                        <strong>Moyenne Trimestrielle :</strong>
 
-                                    <strong>Moyenne Trimestrielle :</strong>
+                        @if($moyenneGenerale !== null)
 
-                                    @if($moyenneGenerale !== null)
+                            <span class="fw-bold text-primary">
 
-                                        <span class="fw-bold text-primary">
+                                {{ number_format($moyenneGenerale,2) }}
 
-                                            {{ number_format($moyenneGenerale,2) }}
+                            </span>
 
-                                        </span>
+                        @else
 
-                                    @else
+                            -
 
-                                        -
+                        @endif
 
-                                    @endif
+                    </p>
 
-                                </p>
+                    <p>
 
-                                <p>
+                        <strong>Rang :</strong>
 
-                                    <strong>Rang :</strong>
+                        <span class="badge bg-info">
 
-                                    <span class="badge bg-info">
+                            {{ $rang }}
 
-                                        {{ $rang }}
+                        </span>
 
-                                    </span>
+                    </p>
 
-                                </p>
+                    <p>
 
-                                <p>
+                        <strong>Moyenne Annuelle :</strong>
 
-                                    <strong>Moyenne Annuelle :</strong>
+                        @if($moyenneAnnuelle !== null)
 
-                                    @if($moyenneAnnuelle !== null)
+                            {{ number_format($moyenneAnnuelle,2) }}
 
-                                        {{ number_format($moyenneAnnuelle,2) }}
+                        @else
 
-                                    @else
+                            -
 
-                                        -
+                        @endif
 
-                                    @endif
+                    </p>
 
-                                </p>
+                    <p class="mb-0">
 
-                                <p class="mb-0">
+                        <strong>Décision :</strong>
 
-                                    <strong>Décision :</strong>
+                        @if($moyenneGenerale !== null)
 
-                                    @if($moyenneGenerale !== null)
+                            @if($moyenneGenerale >= 10)
 
-                                        @if($moyenneGenerale >= 10)
+                                <span class="badge bg-success">
 
-                                            <span class="badge bg-success">
+                                    ✅ Admis
 
-                                                ✅ Admis
+                                </span>
 
-                                            </span>
+                            @else
 
-                                        @else
+                                <span class="badge bg-danger">
 
-                                            <span class="badge bg-danger">
+                                    ❌ Ajourné
 
-                                                ❌ Ajourné
+                                </span>
 
-                                            </span>
+                            @endif
 
-                                        @endif
+                        @else
 
-                                    @else
+                            -
 
-                                        -
+                        @endif
 
-                                    @endif
-
-                                </p>
-
-                            </div>
-
-                        </div>
-
-                    </div>
+                    </p>
 
                 </div>
+
+            </div>
+
+        </div>
+
+    </div>
+@endif
 
                 {{-- CONDUITES --}}
                 @if(isset($conduites) && $conduites->isNotEmpty())

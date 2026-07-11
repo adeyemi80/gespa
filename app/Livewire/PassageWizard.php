@@ -52,12 +52,28 @@ class PassageWizard extends Component
     |--------------------------------------------------------------------------
     */
     public $historique_passages = [];
-
+     
+    public $successMessage = null;
+    public $errorMessage   = null;
+    public $warningMessage = null;
     /*
     |--------------------------------------------------------------------------
     | INITIALISATION
     |--------------------------------------------------------------------------
     */
+
+     /*
+    |--------------------------------------------------------------------------
+    | RESET DES MESSAGES (à appeler au début de chaque action)
+    |--------------------------------------------------------------------------
+    */
+    protected function resetMessages()
+    {
+        $this->successMessage = null;
+        $this->errorMessage   = null;
+        $this->warningMessage = null;
+    }
+
     public function mount()
     {
         $this->classes         = collect();
@@ -198,25 +214,36 @@ class PassageWizard extends Component
     */
     public function executePassage()
     {
+        $this->resetMessages();
+
         DB::beginTransaction();
 
         try {
 
-            $idsPassage    = [];
-            $classeSource  = Classe::find($this->classe_id);
-            $classeAccueil = Classe::with('frais')->findOrFail($this->classe_accueil_id);
+            $idsPassage       = [];
+            $elevesDejaPasses = [];
+            $classeSource     = Classe::find($this->classe_id);
+            $classeAccueil    = Classe::with('frais')->findOrFail($this->classe_accueil_id);
 
             foreach ($this->selected_eleves as $inscriptionId) {
 
-                $ancienne = Inscription::find($inscriptionId);
-
+                $ancienne = Inscription::with('eleve')->find($inscriptionId);
                 if (!$ancienne) continue;
 
-                $existe = Inscription::where('eleve_id', $ancienne->eleve_id)
+                $inscriptionExistante = Inscription::with('classe')
+                    ->where('eleve_id', $ancienne->eleve_id)
                     ->where('annee_id', $this->annee_accueil_id)
-                    ->exists();
+                    ->first();
 
-                if ($existe) continue;
+                if ($inscriptionExistante) {
+                    $nomEleve = trim(($ancienne->eleve->nom ?? '') . ' ' . ($ancienne->eleve->prenom ?? ''))
+                        ?: ('#' . $ancienne->eleve_id);
+
+                    $elevesDejaPasses[] = $nomEleve
+                        . ' (déjà inscrit en ' . ($inscriptionExistante->classe->nom ?? '?') . ')';
+
+                    continue;
+                }
 
                 $nouvelleInscription = Inscription::updateOrCreate(
                     [
@@ -239,7 +266,6 @@ class PassageWizard extends Component
                     ->toArray();
 
                 foreach ($classeAccueil->frais as $frais) {
-
                     if (in_array($frais->id, $fraisExistants)) continue;
 
                     DB::table('inscription_frais')->insert([
@@ -259,11 +285,12 @@ class PassageWizard extends Component
 
             DB::commit();
 
-            /*
-            |--------------------------------------------------------------------------
-            | ENREGISTRER CE PASSAGE DANS L'HISTORIQUE
-            |--------------------------------------------------------------------------
-            */
+            if (count($idsPassage) === 0 && !empty($elevesDejaPasses)) {
+                // AUCUN passage réel : on reste à l'étape actuelle
+                $this->errorMessage = 'Aucun passage effectué : tous les élèves sélectionnés sont déjà inscrits dans l\'année d\'accueil (' . implode(', ', $elevesDejaPasses) . ').';
+                return; // <-- on sort ici, pas de step = 5, pas de reset des sélections
+            }
+
             $this->historique_passages[] = [
                 'label' => ($classeSource->nom ?? '?')
                     . ' → ' . $classeAccueil->nom
@@ -280,16 +307,18 @@ class PassageWizard extends Component
                 'classes_accueil',
             ]);
 
-            session()->flash('success', 'Passage effectué avec succès.');
+            if (!empty($elevesDejaPasses)) {
+                $this->warningMessage = count($elevesDejaPasses) . ' élève(s) déjà inscrit(s) n\'ont pas été traités : ' . implode(', ', $elevesDejaPasses);
+            }
+
+            $this->successMessage = 'Passage effectué avec succès pour ' . count($idsPassage) . ' élève(s).';
             $this->step = 5;
 
         } catch (\Exception $e) {
-
             DB::rollBack();
-            session()->flash('error', $e->getMessage());
+            $this->errorMessage = $e->getMessage();
         }
     }
-
     /*
     |--------------------------------------------------------------------------
     | ANNULER UN PASSAGE AU CHOIX

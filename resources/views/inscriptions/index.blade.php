@@ -12,9 +12,9 @@
     {{-- En-tête --}}
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h4 class="text-primary mb-0">📝 Liste des Inscriptions</h4>
-        <a href="{{ route('inscriptions.create') }}" class="btn btn-success">
+        {{--<a href="{{ route('inscriptions.create') }}" class="btn btn-success">
             ➕ Nouvelle inscription
-        </a>
+        </a>--}}
     </div>
 
     {{-- Alerte succès --}}

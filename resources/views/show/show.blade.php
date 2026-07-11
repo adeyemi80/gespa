@@ -65,60 +65,6 @@
             @endforeach
         </div>
 
-        {{-- 🟩 GROUPE 2 : NOTES & PÉDAGOGIE --}}
-        <h6 class="section-title">📘 Notes & Pédagogie</h6>
-        <div class="row g-3 mb-4">
-
-            @php
-                $cards2 = [
-                    ['route'=>'td.dirige','color'=>'primary','icon'=>'journal-bookmark-fill','title'=>'TRAVAUX DIRIGES'],
-                    ['route'=>'notes.import.index','color'=>'success','icon'=>'file-earmark-arrow-up','title'=>'Importer une note'],
-                    ['route'=>'fiches.index','color'=>'info','icon'=>'file-text','title'=>'Fiche par matière'],
-                    ['route'=>'fiches.formulaire','color'=>'warning','icon'=>'files','title'=>'Fiches par classe'],
-                ];
-            @endphp
-
-            @foreach($cards2 as $c)
-                <div class="col-xl-3 col-lg-4 col-md-6">
-                    <a href="{{ route($c['route']) }}" class="text-decoration-none">
-                        <div class="card dashboard-card bg-{{ $c['color'] }} text-white">
-                            <div class="card-body">
-                                <i class="bi bi-{{ $c['icon'] }} dashboard-icon"></i>
-                                <h6 class="dashboard-title">{{ $c['title'] }}</h6>
-                            </div>
-                        </div>
-                    </a>
-                </div>
-            @endforeach
-        </div>
-
-        {{-- 🟥 GROUPE 3 : FINANCES & GESTION --}}
-        <h6 class="section-title">💰 Finances & Gestion</h6>
-        <div class="row g-3 mb-3">
-
-            @php
-                $cards3 = [
-                    ['route'=>'paiements.create','color'=>'success','icon'=>'wallet2','title'=>'Enregistrer un paiement'],
-                    ['route'=>'depenses.create','color'=>'danger','icon'=>'cash-stack','title'=>'Enregistrer une dépense'],
-                    ['route'=>'budgets.create','color'=>'secondary','icon'=>'pie-chart-fill','title'=>'Créer un budget'],
-                    ['route'=>'eleves.create','color'=>'primary','icon'=>'person-plus-fill','title'=>'Ajouter un élève'],
-                ];
-            @endphp
-
-            @foreach($cards3 as $c)
-                <div class="col-xl-3 col-lg-4 col-md-6">
-                    <a href="{{ route($c['route']) }}" class="text-decoration-none">
-                        <div class="card dashboard-card bg-{{ $c['color'] }} text-white">
-                            <div class="card-body">
-                                <i class="bi bi-{{ $c['icon'] }} dashboard-icon"></i>
-                                <h6 class="dashboard-title">{{ $c['title'] }}</h6>
-                            </div>
-                        </div>
-                    </a>
-                </div>
-            @endforeach
-        </div>
-
          {{-- 🟥 GROUPE 4 : GALERIES & MEDIAS --}}
         <h6 class="section-title">💰 GALERIES & MEDIAS</h6>
         <div class="row g-3 mb-3">

@@ -91,6 +91,29 @@
             @endforeach
         </div>
 
+        <div class="row g-3 mb-4">
+
+            @php
+                $cards3 = [
+                    ['route'=>'inscriptions.index','color'=>'info','icon'=>'journal-bookmark-fill','title'=>'LES INSCRIPTIONS'],
+                   
+             ];
+            @endphp
+
+            @foreach($cards3 as $c)
+                <div class="col-xl-3 col-lg-4 col-md-6">
+                    <a href="{{ route($c['route']) }}" class="text-decoration-none">
+                        <div class="card dashboard-card bg-{{ $c['color'] }} text-white">
+                            <div class="card-body">
+                                <i class="bi bi-{{ $c['icon'] }} dashboard-icon"></i>
+                                <h6 class="dashboard-title">{{ $c['title'] }}</h6>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            @endforeach
+        </div>
+
         {{-- 🟥 GROUPE 3 : FINANCES & GESTION 
         <h6 class="section-title">💰 Finances </h6>
         <div class="row g-3 mb-3">
