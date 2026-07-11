@@ -46,7 +46,8 @@ class EleveController extends Controller
 
     public function create()
     {
-       $anneeEnCours = Annee::where('en_cours', true)->first();
+        $annees = Annee::all();
+        $anneeEnCours = Annee::where('en_cours', true)->first();
         $cycles = Cycle::with('classes')->orderBy('nom')->get();
 
         return view('eleves.create', compact('anneeEnCours', 'cycles'));

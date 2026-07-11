@@ -14,7 +14,7 @@ class FinanceController extends Controller
         // Recettes
         $recettesParJour = Recette::select(DB::raw('DATE(date_paiement) as jour'), DB::raw('SUM(montant_verse) as total'))
             ->groupBy('jour')
-            ->orderBy('jour')
+            ->orderByDesc('jour')
             ->get();
 
         $recettesParMois = Recette::select(
@@ -23,8 +23,8 @@ class FinanceController extends Controller
                 DB::raw('SUM(montant_verse) AS total')
             )
             ->groupBy('annee', 'mois')
-            ->orderBy('annee')
-            ->orderBy('mois')
+            ->orderByDesc('annee')
+            ->orderByDesc('mois')
             ->get();
 
         $recettesParAnnee = Recette::select(
@@ -32,13 +32,13 @@ class FinanceController extends Controller
                 DB::raw('SUM(montant_verse) AS total')
             )
             ->groupBy('annee')
-            ->orderBy('annee')
+            ->orderByDesc('annee')
             ->get();
 
         // Dépenses
         $depensesParJour = Depense::select(DB::raw('DATE(date) as jour'), DB::raw('SUM(montant) as total'))
             ->groupBy('jour')
-            ->orderBy('jour')
+            ->orderByDesc('jour')
             ->get();
 
         $depensesParMois = Depense::select(
@@ -47,8 +47,8 @@ class FinanceController extends Controller
                 DB::raw('SUM(montant) AS total')
             )
             ->groupBy('annee', 'mois')
-            ->orderBy('annee')
-            ->orderBy('mois')
+            ->orderByDesc('annee')
+            ->orderByDesc('mois')
             ->get();
 
         $depensesParAnnee = Depense::select(
@@ -56,7 +56,7 @@ class FinanceController extends Controller
                 DB::raw('SUM(montant) AS total')
             )
             ->groupBy('annee')
-            ->orderBy('annee')
+            ->orderByDesc('annee')
             ->get();
 
         // Solde global
@@ -71,29 +71,5 @@ class FinanceController extends Controller
         ));
     }
 
-    // Optionnel : ajouter des recettes
-    public function storeRecette(Request $request)
-    {
-        $request->validate([
-            'date_paiement' => 'required|date',
-            'libelle' => 'required|string|max:255',
-             'montant_verse' => 'required|numeric|min:0|max:99999999999999999999,99',
-        ]);
-
-        Recette::create($request->all());
-        return back()->with('success', 'Recette ajoutée');
-    }
-
-    // Optionnel : ajouter des dépenses
-    public function storeDepense(Request $request)
-    {
-        $request->validate([
-            'date' => 'required|date',
-            'libelle' => 'required|string|max:255',
-            'montant' => 'required|numeric|min:0|max:99999999999999999999,99',
-        ]);
-
-        Depense::create($request->all());
-        return back()->with('success', 'Dépense ajoutée');
-    }
+   
 }

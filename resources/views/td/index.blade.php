@@ -6,7 +6,7 @@
     class="btn btn-secondary">
     ⬅️ Retour
 </button>
+    @livewire(\App\Livewire\TdPresenceManager::class)
     @livewire(\App\Livewire\TdPaiementManager::class)
-     @livewire(\App\Livewire\TdPresenceManager::class)
-      @livewire(\App\Livewire\TdRecapManager::class)
+    @livewire(\App\Livewire\TdRecapManager::class)
 @endsection

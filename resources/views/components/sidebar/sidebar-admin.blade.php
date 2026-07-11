@@ -11,5 +11,6 @@
         <li><a href="{{ route('show.import') }}" class="nav-link text-white">👨‍🎓 IMPORTATION</a></li>
         <li><a href="{{ route('tableau.paiement') }}" class="nav-link text-white">💰 LES PAIEMENTS </a></li>
         <li><a href="{{ route('tableau.utilisateur') }}" class="nav-link text-white">GESTION DES UTILISATEURS</a></li>
+        <li><a href="{{ route('tableau.investissements') }}" class="nav-link text-white">GESTION DES INVESTISSEMENTS</a></li>
     </ul>
 </div>

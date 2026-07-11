@@ -82,6 +82,10 @@ class TableauController extends Controller
     {
         return view('tableau.finances');
     }
+    public function investissements()
+    {
+        return view('tableau.investissements');
+    }
     /**
      * Store a newly created resource in storage.
      */

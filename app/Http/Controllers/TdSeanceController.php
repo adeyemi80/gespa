@@ -39,7 +39,7 @@ class TdSeanceController extends Controller
 {
     $annees     = Annee::orderByDesc('id')->get();
     $cycles     = Cycle::orderBy('id')->get();
-    $classes    = Classe::orderBy('niveau')->get();
+    $classes    = Classe::orderBy('id')->get();
     $anneeEnCours = Annee::where('en_cours', true)->first();
 
     return view('td_seances.create', compact('annees', 'cycles', 'classes', 'anneeEnCours'));

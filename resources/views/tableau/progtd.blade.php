@@ -71,7 +71,7 @@
 
             @php
                 $cards2 = [
-                    ['route'=>'td.index','color'=>'primary','icon'=>'journal-bookmark-fill','title'=>'Travaux dirigés'],
+                    ['route'=>'td.dirige','color'=>'primary','icon'=>'journal-bookmark-fill','title'=>'TRAVAUX DIRIGES'],
                     ['route'=>'fiches.index','color'=>'info','icon'=>'file-text','title'=>'Fiche de Notes par matière'],
                     ['route'=>'fiches.formulaire','color'=>'info','icon'=>'files','title'=>' Les Fiches de Notes classe'],
                      ['route'=>'tests.importForm','color'=>'info','icon'=>'files','title'=>' Importation des Epreuves'],

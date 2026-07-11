@@ -7,9 +7,23 @@ use App\Http\Controllers\ProfilController;
 use App\Http\Controllers\Auth\LoginController;
 //use App\Http\Controllers\MoyenneController;
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\OloyeController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\OperationController;
 use App\Http\Controllers\RapportController;
+use App\Http\Controllers\RepartitionController;
+use App\Http\Controllers\BeneficeController;
+use App\Http\Controllers\VersementController;
+use App\Http\Controllers\RetraitCapitalController;
+use App\Http\Controllers\PaiementBeneficeController;
+use App\Http\Controllers\InvestisseurController;
+use App\Http\Controllers\InvestissementController;
+use App\Livewire\Investissements\BeneficeManager;
+use App\Livewire\Investissements\RapportManager;
+use App\Livewire\Investissements\InvestissementManager;
+use App\Livewire\Investissements\RepartitionManager;
+use App\Livewire\Investissements\ParametreManager;
+use App\Http\Controllers\ParametreController;
 use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\CompteController;
 use App\Http\Controllers\CategorieController;
@@ -144,6 +158,8 @@ Route::get('/serviceReads', function () {
 });
 
 ////////////////////////         ROUTES STATIQUES        /////////////////////////////////////////
+Route::get('/oloyes/pdf', [OloyeController::class, 'pdf'])->name('oloyes.pdf');
+Route::resource('oloyes', OloyeController::class);
 Route::resource('galeries', GalerieController::class)->parameters(['galeries' => 'galerie']);
 Route::get('/medias', [MediaController::class, 'index'])->name('medias.index');
 //Route::get('/medias/create', [MediaController::class, 'create'])->name('medias.create');
@@ -180,10 +196,30 @@ Route::get('/tableau/planning', [App\Http\Controllers\TableauController::class, 
 Route::get('/tableau/annees', [App\Http\Controllers\TableauController::class, 'annees'])->name('tableau.annees');
 Route::get('/tableau/finances', [App\Http\Controllers\TableauController::class, 'finances'])->name('tableau.finances');
 Route::get('/tableau/utilisateur', [App\Http\Controllers\TableauController::class, 'utilisateur'])->name('tableau.utilisateur');
+Route::get('/tableau/investissements', [App\Http\Controllers\TableauController::class, 'investissements'])->name('tableau.investissements');
 Route::middleware(['auth'])->group(function () {Route::get('/tableau/accueil', [TableauController::class, 'accueil'])->name('tableau.accueil');});
 Route::get('/tableau/progtd', [App\Http\Controllers\TableauController::class, 'progtd'])->name('tableau.progtd');
 Route::get('/tableau/inscription', [App\Http\Controllers\TableauController::class, 'inscription'])->name('tableau.inscription');
 Route::resource('tableaus', App\Http\Controllers\TableauController::class)->parameters([ 'tableaus' => 'tableau']);
+Route::patch('parametres-investissements/{parametreInvestissement}/toggle',[ParametreController::class, 'toggle'])->name('parametres-investissements.toggle');
+Route::resource('parametres-investissements',ParametreController::class);
+Route::middleware(['auth'])->group(function () {
+    Route::get('/benefices', BeneficeManager::class)->name('benefices.index');
+    Route::get('/rapports', RapportManager::class)->name('rapports.index');
+    Route::get('/repartitions', RepartitionManager::class)->name('repartitions.index');
+    Route::get('/parametres', ParametreManager::class)->name('parametres.index');
+    Route::get('/investissements', InvestissementManager::class)->name('investissements.index');
+    });
+Route::get('/investissements/benefices', [App\Http\Controllers\BeneficeController::class, 'index'])->name('benefices.index');
+Route::get('/investissements/rapports', [App\Http\Controllers\RapportController::class, 'index'])->name('rapports.index');
+Route::get('/investissements/repartitions', [App\Http\Controllers\RepartitionController::class, 'index'])->name('repartitions.index');
+Route::get('/investissements/parametres', [App\Http\Controllers\ParametreController::class, 'index'])->name('parametres.index');
+Route::get('/investissements/index', [App\Http\Controllers\InvestissementController::class, 'index'])->name('investissements.index');
+Route::get('versements/export-pdf', [VersementController::class, 'exportPdf'])->name('versements.export-pdf');
+Route::resource('versements', VersementController::class);
+Route::resource('retraits-capital', App\Http\Controllers\RetraitCapitalController::class);
+Route::resource('paiements-benefices', App\Http\Controllers\PaiementBeneficeController::class);
+Route::resource('investisseurs', App\Http\Controllers\InvestisseurController::class);
 /////////                     IMPORTATION DES ELEVES           ///////////////////////////////////////////////
 // Formulaire d'importation
 Route::get('eleves/import', [EleveImportController::class, 'form'])->name('eleves.form');
@@ -393,7 +429,7 @@ Route::resource('budgets', App\Http\Controllers\BudgetController::class);
 Route::get('/annulation-passage', function () {return view('livewire.annulation-passage');})->middleware('auth')->name('annulation.passage');
 Route::get('/passages', [PassageController::class, 'index'])->name('passages.index');
 Route::get('/passages/annuler', [PassageController::class, 'annuler'])->name('passages.annuler');
-Route::get('/rapports', [App\Http\Controllers\RapportController::class, 'index'])->name('rapports.index');
+//Route::get('/rapports', [App\Http\Controllers\RapportController::class, 'index'])->name('rapports.index');
 Route::post('/rapports/resultats', [App\Http\Controllers\RapportController::class, 'resultats'])->name('rapports.resultats');
 Route::get('/rapports/pdf', [App\Http\Controllers\RapportController::class, 'exportPdf'])->name('rapports.pdf');
 // Rapport multi-catégories
@@ -443,7 +479,6 @@ Route::middleware(['auth'])->group(function () {
 // Formulaire et génération PDF
 Route::get('/fiches/export/pdf', [FicheController::class, 'exportPDF'])->name('fiches.export.pdf');
 Route::get('/notes/import-livewire', function () {return view('notes.import-livewire');})->name('notes.import-livewire');
-//Route::get('/moyennes/moyennes/pdf', [MoyenneController::class, 'exportPdf']) ->name('moyennes.export.pdf');
 Route::get('/dashboard-statistiques', [DashboardStatistiqueController::class, 'index']) ->name('dashboard.statistiques');
 Route::get('/dashboard-statistique/export-pdf', [DashboardStatistiqueController::class, 'exportPdf'])->name('dashboard.statistique.pdf');
 Route::get('/classement-par-classe',  [DashboardStatistiqueController::class, 'classementParClasse'])->name('classement.par.classe');
@@ -552,7 +587,6 @@ Route::get('/classes/{id}/matieres', [App\Http\Controllers\ClasseController::cla
 //Route::get('/api/matieres/{classe}', function($classe) { return \App\Models\Matiere::where('classe_id', $classe)->get(); });
 Route::get('conduites/template/{classe}/{trimestre}/{annee}', [ConduiteController::class, 'template'])->name('conduites.template');
 Route::get('/conduites/{id}', [ConduiteController::class, 'show']) ->where('id', '[0-9]+')->name('conduites.show');
-    Route::get('/classe/{classe_id}/annee/{annee_id}/classement-annuel', [MoyenneController::class, 'recalculerRangsAnnuels']);
 Route::resource('tests', App\Http\Controllers\TestController::class)->where(['test' => '[0-9]+']);//->middleware(['auth', 'verified', 'role:admin,parent,secretaire']);
   
    //Route::middleware(['auth', 'role:admin'])

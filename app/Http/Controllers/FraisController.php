@@ -145,7 +145,8 @@ public function update(Request $request, Frais $frais)
         'echeances.*.date_limite' => 'required|date',
     ]);
 
-    // ✅ Même vérification en excluant le frais en cours de modification
+    // ✅ Vérification de doublon : on ignore explicitement
+    // les pivots appartenant déjà à CE frais (peu importe leur classe/année actuelle)
     $doublon = Frais::where('nom', $request->nom)
         ->where('id', '!=', $frais->id)
         ->whereHas('anneeClasseFrais', function ($q) use ($request) {
@@ -167,15 +168,22 @@ public function update(Request $request, Frais $frais)
             'description' => $request->description,
         ]);
 
+        // ✅ Supprime l'ancien pivot s'il ne correspond plus
+        // à la nouvelle classe/année (évite les orphelins)
+        AnneeClasseFrais::where('frais_id', $frais->id)
+            ->where(function ($q) use ($request) {
+                $q->where('classe_id', '!=', $request->classe_id)
+                  ->orWhere('annee_id', '!=', $request->annee_id);
+            })
+            ->delete();
+
         AnneeClasseFrais::updateOrCreate(
             [
                 'annee_id'  => $request->annee_id,
                 'classe_id' => $request->classe_id,
                 'frais_id'  => $frais->id,
             ],
-            [
-                'montant' => $request->montant,
-            ]
+            ['montant' => $request->montant]
         );
 
         $this->saveEcheances($request, $frais, true);
@@ -185,7 +193,6 @@ public function update(Request $request, Frais $frais)
     return redirect()->route('frais.index')
         ->with('success', '✅ Frais mis à jour avec succès.');
 }
-
     /**
      * Sauvegarde échéances
      */

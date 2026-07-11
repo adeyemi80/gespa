@@ -11,8 +11,8 @@
 <div class="container-fluid py-3 h-100">
     <div class="dashboard-scroll">
 
-        {{-- 🟦 GROUPE 1 : ANNEES SCOLAIRES, TRIMESTRES, CLASSES & MATIERES--}}
-        <h6 class="section-title">📥 ANNÉES SCOLAIRES, TRIMESTRES, CLASSES & MATIERES</h6>
+        {{-- 🟦 GROUPE 1 : UTILISATEURS--}}
+        <h6 class="section-title">📥 UTILISATEURS</h6>
         <div class="row g-3 mb-4">
 
             @php
@@ -20,92 +20,11 @@
                     ['route'=>'users.create','color'=>'primary','icon'=>'people-fill','title'=>'Créer Un Utilisateur '],
                     ['route'=>'profil.index','color'=>'primary','icon'=>'person-lines-fill','title'=>'LES UTILISATEURS'],
                     ['route'=>'users.index','color'=>'primary','icon'=>'journal-text','title'=>'LES UTILISATEURS'],
-                    ['route'=>'matieres.create','color'=>'primary','icon'=>'clipboard-check','title'=>'Créer une Matière'],
+                    
                 ];
             @endphp
 
             @foreach($cards1 as $c)
-                <div class="col-xl-3 col-lg-4 col-md-6">
-                    <a href="{{ route($c['route']) }}" class="text-decoration-none">
-                        <div class="card dashboard-card bg-{{ $c['color'] }} text-white">
-                            <div class="card-body">
-                                <i class="bi bi-{{ $c['icon'] }} dashboard-icon"></i>
-                                <h6 class="dashboard-title">{{ $c['title'] }}</h6>
-                            </div>
-                        </div>
-                    </a>
-                </div>
-            @endforeach
-        </div>
-        {{-- 🟩 GROUPE 2 : NOTES & PÉDAGOGIE --}}
-        <h6 class="section-title"></h6>
-        <div class="row g-3 mb-4">
-
-            @php
-                $cards2 = [
-                    ['route'=>'annees.index','color'=>'info','icon'=>'journal-bookmark-fill','title'=>'Les Années Scolaires'],
-                    ['route'=>'trimestres.index','color'=>'info','icon'=>'file-earmark-arrow-up','title'=>'Les Trimestres'],
-                    ['route'=>'classes.index','color'=>'info','icon'=>'file-text','title'=>'Les Classes'],
-                    ['route'=>'matieres.index','color'=>'info','icon'=>'files','title'=>'Les Matières'],
-                ];
-            @endphp
-
-            @foreach($cards2 as $c)
-                <div class="col-xl-3 col-lg-4 col-md-6">
-                    <a href="{{ route($c['route']) }}" class="text-decoration-none">
-                        <div class="card dashboard-card bg-{{ $c['color'] }} text-white">
-                            <div class="card-body">
-                                <i class="bi bi-{{ $c['icon'] }} dashboard-icon"></i>
-                                <h6 class="dashboard-title">{{ $c['title'] }}</h6>
-                            </div>
-                        </div>
-                    </a>
-                </div>
-            @endforeach
-        </div>
-
-         {{-- 🟩 GROUPE 2 : NOTES & PÉDAGOGIE --}}
-        <h6 class="section-title">📘 Notes & Pédagogie</h6>
-        <div class="row g-3 mb-4">
-
-            @php
-                $cards2 = [
-                    ['route'=>'td.index','color'=>'primary','icon'=>'journal-bookmark-fill','title'=>'Travaux dirigés'],
-                    ['route'=>'notes.import.index','color'=>'success','icon'=>'file-earmark-arrow-up','title'=>'Importer une note'],
-                    ['route'=>'fiches.index','color'=>'info','icon'=>'file-text','title'=>'Fiche par matière'],
-                    ['route'=>'fiches.formulaire','color'=>'warning','icon'=>'files','title'=>'Fiches par classe'],
-                ];
-            @endphp
-
-            @foreach($cards2 as $c)
-                <div class="col-xl-3 col-lg-4 col-md-6">
-                    <a href="{{ route($c['route']) }}" class="text-decoration-none">
-                        <div class="card dashboard-card bg-{{ $c['color'] }} text-white">
-                            <div class="card-body">
-                                <i class="bi bi-{{ $c['icon'] }} dashboard-icon"></i>
-                                <h6 class="dashboard-title">{{ $c['title'] }}</h6>
-                            </div>
-                        </div>
-                    </a>
-                </div>
-            @endforeach
-        </div>
-
-        {{-- 🟥 GROUPE 3 : FINANCES & GESTION --}}
-        <h6 class="section-title">💰 Finances & contacts </h6>
-        <div class="row g-3 mb-3">
-
-            @php
-                $cards3 = [
-                    ['route'=>'paiements.create','color'=>'success','icon'=>'wallet2','title'=>'Enregistrer un paiement'],
-                    ['route'=>'depenses.create','color'=>'danger','icon'=>'cash-stack','title'=>'Enregistrer une dépense'],
-                    ['route'=>'budgets.create','color'=>'secondary','icon'=>'pie-chart-fill','title'=>'Créer un budget'],
-                     ['route'=>'contacts.index','color'=>'primary','icon'=>'pie-chart-fill','title'=>'MESSAGES DES CONTACTS'],
-                   
-                ];
-            @endphp
-
-            @foreach($cards3 as $c)
                 <div class="col-xl-3 col-lg-4 col-md-6">
                     <a href="{{ route($c['route']) }}" class="text-decoration-none">
                         <div class="card dashboard-card bg-{{ $c['color'] }} text-white">

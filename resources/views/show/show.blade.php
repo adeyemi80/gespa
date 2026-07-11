@@ -71,7 +71,7 @@
 
             @php
                 $cards2 = [
-                    ['route'=>'td.index','color'=>'primary','icon'=>'journal-bookmark-fill','title'=>'Travaux dirigés'],
+                    ['route'=>'td.dirige','color'=>'primary','icon'=>'journal-bookmark-fill','title'=>'TRAVAUX DIRIGES'],
                     ['route'=>'notes.import.index','color'=>'success','icon'=>'file-earmark-arrow-up','title'=>'Importer une note'],
                     ['route'=>'fiches.index','color'=>'info','icon'=>'file-text','title'=>'Fiche par matière'],
                     ['route'=>'fiches.formulaire','color'=>'warning','icon'=>'files','title'=>'Fiches par classe'],
@@ -128,6 +128,7 @@
                     ['route'=>'galeries.create','color'=>'success','icon'=>'wallet2','title'=>'CREER UNE GALERIE'],
                     ['route'=>'galeries.index','color'=>'danger','icon'=>'cash-stack','title'=>'LES GALERIES'],
                     ['route'=>'medias.index','color'=>'primary','icon'=>'person-plus-fill','title'=>'LES MEDIAS'],
+                    
                 ];
             @endphp
 

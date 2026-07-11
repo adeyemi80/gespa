@@ -48,7 +48,7 @@
            class="form-control form-control-sm {{ $errors->has('nom') ? 'is-invalid' : '' }}" required>
                             <option value="">-- Choisir le Nom du Frais --</option>
                             <option value="scolarite">Scolarité</option>
-                            <option value="frais d\'inscription">Frais d'inscription</option>
+                            <option value="frais d'inscription">Frais d'inscription</option>
                             <option value="frais de reinscription">Frais de Réinscription</option>
                             <option value="uniforme">Uniforme</option>
                             <option value="tenue de sport">Tenue de sport</option>
