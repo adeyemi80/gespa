@@ -34,7 +34,7 @@ return view('medias.index', compact('galeries'));
     public function store(Request $request, Galerie $galerie)
     {
         $request->validate([
-            'fichier' => 'required|file|mimes:jpg,jpeg,png,mp4,mov,avi|max:51200',
+            'fichier' => 'required|file|mimes:jpg,jpeg,png,mp4,mov,avi,mp3,wav,ogg,m4a,aac|max:102400', // 100 Mo
             'titre' => 'nullable|string|max:255',
         ]);
 

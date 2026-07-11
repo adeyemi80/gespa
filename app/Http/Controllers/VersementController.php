@@ -69,7 +69,7 @@ class VersementController extends Controller
 
         $versements = $query
             ->orderByDesc('date_versement')
-            ->paginate(15);
+            ->paginate(15000);
 
 
         $investissements = Investissement::with('investisseur')

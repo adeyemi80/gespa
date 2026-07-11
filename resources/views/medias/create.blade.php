@@ -14,15 +14,25 @@
         Galerie : <strong>{{ $galerie->titre }}</strong>
     </p>
 
-    @if ($errors->any())
-        <div class="alert alert-danger">
-            <ul class="mb-0">
-                @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show">
+            <i class="fas fa-check-circle me-2"></i>
+            {{ session('success') }}
+
+            <button class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     @endif
+
+    {{-- ERREURS --}}
+            @if ($errors->any())
+                <div class="alert alert-danger py-2">
+                    <ul class="mb-0 small">
+                        @foreach ($errors->all() as $error)
+                            <li>❌ {{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
 
     <form action="{{ route('medias.store', $galerie->id) }}"
           method="POST"

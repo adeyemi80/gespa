@@ -16,7 +16,25 @@
             ➕ Nouvelle galerie
         </a>
     </div>
+@if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show">
+            <i class="fas fa-check-circle me-2"></i>
+            {{ session('success') }}
 
+            <button class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    {{-- ERREURS --}}
+            @if ($errors->any())
+                <div class="alert alert-danger py-2">
+                    <ul class="mb-0 small">
+                        @foreach ($errors->all() as $error)
+                            <li>❌ {{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
     <div class="row">
 
         @foreach($galeries as $galerie)
@@ -37,7 +55,7 @@
 
                         <a href="{{ route('galeries.show', $galerie->id) }}"
                            class="btn btn-sm btn-dark">
-                            Voir
+                            Ajouter un Media
                         </a>
 
                         <a href="{{ route('galeries.edit', $galerie) }}"
