@@ -6,5 +6,5 @@
     class="btn btn-secondary">
     ⬅️ Retour
 </button>
-   @livewire(\App\Livewire\Depenses\BudgetManager::class)
+   @livewire(\App\Livewire\Depenses\DepenseManager::class)
 @endsection

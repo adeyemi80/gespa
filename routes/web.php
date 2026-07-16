@@ -3,9 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\ProfilController;
-//use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Auth\LoginController;
-//use App\Http\Controllers\MoyenneController;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\OloyeController;
 use App\Http\Controllers\UserController;
@@ -18,13 +16,9 @@ use App\Http\Controllers\RetraitCapitalController;
 use App\Http\Controllers\PaiementBeneficeController;
 use App\Http\Controllers\InvestisseurController;
 use App\Http\Controllers\InvestissementController;
-use App\Livewire\Investissements\BeneficeManager;
-use App\Livewire\Investissements\RapportManager;
-use App\Livewire\Investissements\InvestissementManager;
-use App\Livewire\Investissements\RepartitionManager;
-use App\Livewire\Investissements\ParametreManager;
 use App\Http\Controllers\ParametreController;
 use App\Http\Controllers\BudgetController;
+use App\Http\Controllers\BudgetDepensePdfController;
 use App\Http\Controllers\CompteController;
 use App\Http\Controllers\CategorieController;
 use App\Http\Controllers\TransactionController;
@@ -61,6 +55,9 @@ use App\Livewire\Bulletins\BulletinCard;
 use App\Http\Controllers\BulletinController;
 use App\Http\Controllers\RecetteController;
 use App\Http\Controllers\DepenseController;
+//use App\Http\Livewire\DepenseManager;
+use App\Http\Controllers\CategorieDepenseController;
+use App\Http\Controllers\TypeDepenseController;
 use App\Http\Controllers\FinanceController;
 use App\Http\Controllers\EleveImportController;
 use App\Http\Controllers\ParenImportController;
@@ -92,7 +89,7 @@ use App\Models\Note;
 use App\Http\Controllers\GalerieController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\RecuPaiementController;
-use App\Livewire\PaiementMultiple;
+//use App\Livewire\Paiements\PaiementMultiple;
 use App\Http\Livewire\AnnulationPassage;
 use App\Http\Controllers\TdRecapPdfController;
 use App\Http\Controllers\TdRecapController;
@@ -100,6 +97,8 @@ use App\Http\Controllers\TdSeanceController;
 use App\Http\Controllers\TdTarifController;
 use App\Http\Controllers\TdPresenceController;
 use App\Http\Controllers\TdPaiementController;
+
+
 
 
 
@@ -203,13 +202,6 @@ Route::get('/tableau/inscription', [App\Http\Controllers\TableauController::clas
 Route::resource('tableaus', App\Http\Controllers\TableauController::class)->parameters([ 'tableaus' => 'tableau']);
 Route::patch('parametres-investissements/{parametreInvestissement}/toggle',[ParametreController::class, 'toggle'])->name('parametres-investissements.toggle');
 Route::resource('parametres-investissements',ParametreController::class);
-Route::middleware(['auth'])->group(function () {
-    Route::get('/benefices', BeneficeManager::class)->name('benefices.index');
-    Route::get('/rapports', RapportManager::class)->name('rapports.index');
-    Route::get('/repartitions', RepartitionManager::class)->name('repartitions.index');
-    Route::get('/parametres', ParametreManager::class)->name('parametres.index');
-    Route::get('/investissements', InvestissementManager::class)->name('investissements.index');
-    });
 Route::get('/investissements/benefices', [App\Http\Controllers\BeneficeController::class, 'index'])->name('benefices.index');
 Route::get('/investissements/rapports', [App\Http\Controllers\RapportController::class, 'index'])->name('rapports.index');
 Route::get('/investissements/repartitions', [App\Http\Controllers\RepartitionController::class, 'index'])->name('repartitions.index');
@@ -293,7 +285,7 @@ Route::resource('inscription-frais', InscriptionFraisController::class);//->exce
 // Page de paiement multiple (Livewire)
 Route::get('/paiements/fraisFilter', [PaiementController::class, 'fraisFilter'])->name('paiements.fraisFilter');
 Route::get('/paiements/paiement', [PaiementController::class, 'paiement'])->name('paiements.paiement');
-Route::get('/paiements/multiple', PaiementMultiple::class)->name('paiements.multiple');
+//Route::get('/paiements/multiple', Paiements\PaiementMultiple::class)->name('paiements.multiple');
 // Reçu / ticket d'impression
 Route::get('/paiements/ticket/{numeroLot}', [RecuPaiementController::class, 'ticket'])->name('paiements.ticket');
 Route::get('/paiements', fn() => view('paiements.index'))->name('paiements.index');
@@ -415,12 +407,23 @@ Route::prefix('bulletins')->name('bulletins.')->group(function () {
 Route::get('/bulletins', \App\Livewire\Bulletins\BulletinManager::class)->name('bulletins.manager');
 Route::get('/bulletins/bulletins', [App\Http\Controllers\BulletinController::class, 'bulletins'])->name('bulletins.bulletins');
 Route::resource('recettes', App\Http\Controllers\RecetteController::class);
-Route::resource('depenses', App\Http\Controllers\DepenseController::class);
+//Route::resource('depenses', App\Http\Controllers\DepenseController::class);
+Route::resource( 'categories-depenses', CategorieDepenseController::class);
+Route::resource('types-depenses', TypeDepenseController::class);
+Route::get('/depenses/live', [DepenseController::class, 'live'])->name('depenses.live');
+    Route::get('budgets-depenses/export-pdf', [BudgetDepensePdfController::class, 'export'])->name('budgets-depenses.export-pdf');
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('depenses/{depense}/pieces-justificatives', [PieceJustificativeController::class, 'index'])->name('pieces-justificatives.index');
+    Route::post('depenses/{depense}/pieces-justificatives', [PieceJustificativeController::class, 'store'])->name('pieces-justificatives.store');
+    Route::get('pieces-justificatives/{pieceJustificative}/apercu', [PieceJustificativeController::class, 'apercu']) ->name('pieces-justificatives.apercu');
+    Route::get('pieces-justificatives/{pieceJustificative}/telecharger', [PieceJustificativeController::class, 'telecharger'])->name('pieces-justificatives.telecharger');
+    Route::delete('pieces-justificatives/{pieceJustificative}', [PieceJustificativeController::class, 'destroy']) ->name('pieces-justificatives.destroy');});
 Route::get('/finances', [FinanceController::class, 'index'])->name('finances.index');//->middleware(['auth', 'verified', 'role:admin,directeur,comptable']);
 Route::resource('categories', App\Http\Controllers\CategorieController::class)->parameters(['categories' => 'categorie']);
 Route::resource('transactions', App\Http\Controllers\TransactionController::class);
 Route::resource('comptes', App\Http\Controllers\CompteController::class);
-Route::resource('budgets', App\Http\Controllers\BudgetController::class);
+Route::get('/budgets', [BudgetController::class, 'index'])->name('budgets.index');
 // Passage des élèves
 // routes/web.php
 // routes/web.php

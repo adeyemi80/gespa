@@ -1,11 +1,8 @@
-```blade
 @extends('tableau.neutre')
 
 @section('content')
 
 <div class="container py-3">
-
-
     <!-- Bouton Retour -->
     <div class="mb-3">
 

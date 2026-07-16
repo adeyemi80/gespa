@@ -18,8 +18,8 @@
 
             @php
                 $cards1 = [
-                    ['route'=>'paiements.create-up','color'=>'primary','icon'=>'people-fill','title'=>'PAIEMENT MULTIPLE '],
-                    ['route'=>'paiements.create','color'=>'primary','icon'=>'person-lines-fill','title'=>'PAIEMENT UNIQUE'],
+                    ['route'=>'paiements.create-up','color'=>'primary','icon'=>'people-fill','title'=>'ENREGISTRER DES PAIEMENTS '],
+                    ['route'=>'paiements.paiement','color'=>'primary','icon'=>'person-lines-fill','title'=>'ENREGISTRER PAIEMENTS'],
                     ['route'=>'paiements.index','color'=>'primary','icon'=>'journal-text','title'=>'HISTORIQUE PAIEMENTS'],
                     ['route'=>'paiements.historique','color'=>'primary','icon'=>'clipboard-check','title'=>'PAIEMENTS CUMULES'],
                 ];
@@ -66,12 +66,42 @@
         </div>
 
         {{-- 🟩 GROUPE 3 : FRAIS --}}
-        <h6 class="section-title">FRAIS</h6>
+        <h6 class="section-title"></h6>
         <div class="row g-3 mb-4">
 
             @php
                 $cards2 = [
                     ['route'=>'paiements.fraisFilter','color'=>'info','icon'=>'journal-bookmark-fill','title'=>'SUIVI DES FRAIS DE SCOLAIRES'],
+                    ['route'=>'finances.index','color'=>'info','icon'=>'journal-bookmark-fill','title'=>'LES FINANCES'],
+                    ['route'=>'categories-depenses.create','color'=>'info','icon'=>'journal-bookmark-fill','title'=>'CREER DES CATEGORIES DE DEPENSES'],
+                    ['route'=>'categories-depenses.index','color'=>'info','icon'=>'journal-bookmark-fill','title'=>'DES CATEGORIES DE DEPENSES'],
+                    
+                ];
+            @endphp
+
+            @foreach($cards2 as $c)
+                <div class="col-xl-3 col-lg-4 col-md-6">
+                    <a href="{{ route($c['route']) }}" class="text-decoration-none">
+                        <div class="card dashboard-card bg-{{ $c['color'] }} text-white">
+                            <div class="card-body">
+                                <i class="bi bi-{{ $c['icon'] }} dashboard-icon"></i>
+                                <h6 class="dashboard-title">{{ $c['title'] }}</h6>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            @endforeach
+        </div>
+
+        <div class="row g-3 mb-4">
+
+            @php
+                $cards2 = [
+                    ['route'=>'types-depenses.create','color'=>'info','icon'=>'journal-bookmark-fill','title'=>'CREER DES TYPES DE DEPENSES'],
+                    ['route'=>'types-depenses.index','color'=>'info','icon'=>'journal-bookmark-fill','title'=>'DES TYPES DE DEPENSES'],
+                    ['route'=>'depenses.live','color'=>'info','icon'=>'journal-bookmark-fill','title'=>'LES DEPENSES'],
+                    ['route'=>'budgets.index','color'=>'danger','icon'=>'journal-bookmark-fill','title'=>'LES BUDGETS'],
+                    
                     
                 ];
             @endphp

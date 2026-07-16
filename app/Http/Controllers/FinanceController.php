@@ -36,14 +36,14 @@ class FinanceController extends Controller
             ->get();
 
         // Dépenses
-        $depensesParJour = Depense::select(DB::raw('DATE(date) as jour'), DB::raw('SUM(montant) as total'))
+        $depensesParJour = Depense::select(DB::raw('DATE(date_depense) as jour'), DB::raw('SUM(montant) as total'))
             ->groupBy('jour')
             ->orderByDesc('jour')
             ->get();
 
         $depensesParMois = Depense::select(
-                DB::raw('EXTRACT(YEAR FROM date) AS annee'),
-                DB::raw('EXTRACT(MONTH FROM date) AS mois'),
+                DB::raw('EXTRACT(YEAR FROM date_depense) AS annee'),
+                DB::raw('EXTRACT(MONTH FROM date_depense) AS mois'),
                 DB::raw('SUM(montant) AS total')
             )
             ->groupBy('annee', 'mois')
@@ -52,7 +52,7 @@ class FinanceController extends Controller
             ->get();
 
         $depensesParAnnee = Depense::select(
-                DB::raw('EXTRACT(YEAR FROM date) AS annee'),
+                DB::raw('EXTRACT(YEAR FROM date_depense) AS annee'),
                 DB::raw('SUM(montant) AS total')
             )
             ->groupBy('annee')

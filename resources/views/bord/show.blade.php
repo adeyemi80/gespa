@@ -17,8 +17,8 @@
                 $cards1 = [
                     ['route'=>'paiements.index','color'=>'primary','icon'=>'people-fill','title'=>'HISTORIQUE PAIEMENTS '],
                     ['route'=>'paiements.historique','color'=>'primary','icon'=>'person-lines-fill','title'=>'PAIEMENTS CUMULES'],
-                    ['route'=>'depenses.create','color'=>'danger','icon'=>'journal-text','title'=>'ENREGISTRER DEPENSES'],
-                    ['route'=>'budgets.create','color'=>'info','icon'=>'clipboard-check','title'=>'ENREGISTRER BUDGETS'],
+                    ['route'=>'depenses.live','color'=>'danger','icon'=>'journal-text','title'=>'ENREGISTRER DEPENSES'],
+                    ['route'=>'budgets.index','color'=>'info','icon'=>'clipboard-check','title'=>'ENREGISTRER BUDGETS'],
                 ];
             @endphp
 

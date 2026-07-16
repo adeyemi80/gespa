@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Livewire;
+namespace App\Livewire\Paiements;
 
 use App\Models\Annee;
 use App\Models\Classe;
@@ -227,7 +227,7 @@ class PaiementMultiple extends Component
         $this->numeroLotGenere = $numeroLot;
         $this->successMessage  = 'Paiement enregistré avec succès !';
         $this->dispatch('masquerSucces');
-
+        $this->dispatch('paiement-enregistre');
         // ✅ Dispatcher le ticket AVANT le reset
         $this->dispatch('ouvrirTicket', numeroLot: $numeroLot);
 
@@ -240,7 +240,7 @@ class PaiementMultiple extends Component
 
     public function render()
     {
-        return view('livewire.paiement-multiple', [
+        return view('livewire.paiements.paiement-multiple', [
             'annees' => Annee::all(),
             'cycles' => Cycle::all(),
         ]);
