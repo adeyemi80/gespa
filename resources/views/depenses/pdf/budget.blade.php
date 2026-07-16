@@ -103,7 +103,8 @@
 <body>
 
     <div class="entete">
-        <h1>Budget Dépenses Année Scolaire {{ $annee->nom }}</h1>
+        <h1>Budget des dépenses</h1>
+        <p>Année scolaire : {{ $annee->nom }}</p>
         <p>Généré le {{ $dateGeneration->format('d/m/Y à H:i') }}</p>
     </div>
 

@@ -42,7 +42,7 @@ class BudgetDepensePdfController extends Controller
 
         $pdf->setPaper('a4', 'portrait');
 
-        $nomFichier = 'budget-depenses-' . str_replace([' ', '/'], '-', $annee->libelle) . '.pdf';
+        $nomFichier = 'budget-depenses-' . str_replace([' ', '/'], '-', $annee->nom) . '.pdf';
 
         return $pdf->stream($nomFichier);
     }

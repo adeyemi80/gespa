@@ -1,5 +1,5 @@
 <?php
-
+use App\Http\Controllers\PieceJustificativeController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\ProfilController;
@@ -75,7 +75,7 @@ use App\Models\Classe;
 use App\Models\Frais;
 use App\Models\Inscription;
 use App\Http\Controllers\DashboardStatistiqueController;
-use App\Http\Livewire\ImportMatieres;
+//use App\Http\Livewire\ImportMatieres;
 use App\Exports\MatieresTemplateExport;
 use App\Livewire\InscriptionFraisTable;
 use App\Http\Controllers\ExamenBlancController;
@@ -288,7 +288,7 @@ Route::get('/paiements/paiement', [PaiementController::class, 'paiement'])->name
 //Route::get('/paiements/multiple', Paiements\PaiementMultiple::class)->name('paiements.multiple');
 // Reçu / ticket d'impression
 Route::get('/paiements/ticket/{numeroLot}', [RecuPaiementController::class, 'ticket'])->name('paiements.ticket');
-Route::get('/paiements', fn() => view('paiements.index'))->name('paiements.index');
+//Route::get('/paiements', fn() => view('paiements.index'))->name('paiements.index');
 Route::get('paiements/historique', [PaiementController::class, 'historique']) ->name('paiements.historique');//->middleware(['auth', 'verified', 'role:admin,directeur']);
 Route::get('/paiements/export/pdf', [PaiementController::class, 'exportPdf'])->name('paiements.export.pdf');//->middleware(['auth', 'verified', 'role:admin,directeur']);
 // routes/web.php

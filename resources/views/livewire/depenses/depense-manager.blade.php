@@ -114,6 +114,10 @@
                             </td>
                             <td class="text-end">
                                 <div class="btn-group">
+                                    <a href="{{ route('pieces-justificatives.index', $depense->id) }}"
+                                       class="btn btn-sm btn-outline-secondary" title="Pièces justificatives">
+                                        <i class="bi bi-paperclip"></i>
+                                    </a>
                                     <button type="button" class="btn btn-sm btn-outline-primary" title="Modifier"
                                             wire:click="ouvrirModalEdition({{ $depense->id }})">
                                         <i class="bi bi-pencil"></i>

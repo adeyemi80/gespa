@@ -10,7 +10,7 @@
                 Dépense {{ $depense->numero_piece }} — {{ $depense->libelle }}
             </p>
         </div>
-        <a href="{{ route('depenses.index') }}" class="btn btn-outline-secondary">
+        <a href="{{ route('depenses.live') }}" class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left"></i> Retour aux dépenses
         </a>
     </div>

@@ -172,43 +172,37 @@
 
                             </td>
 
-                            <td>
+                           <td class="text-nowrap">
 
-                                <a
-                                    href="{{ route('oloyes.show',$depense) }}"
-                                    class="btn btn-info btn-sm">
+    <a href="{{ route('oloyes.show', $depense) }}"
+       class="btn btn-info btn-sm"
+       title="Voir">
+        <i class="bi bi-eye-fill"></i>
+    </a>
 
-                                    Voir
+    <a href="{{ route('oloyes.edit', $depense) }}"
+       class="btn btn-warning btn-sm"
+       title="Modifier">
+        <i class="bi bi-pencil-square"></i>
+    </a>
 
-                                </a>
+    <form action="{{ route('oloyes.destroy', $depense) }}"
+          method="POST"
+          class="d-inline">
 
-                                <a
-                                    href="{{ route('oloyes.edit',$depense) }}"
-                                    class="btn btn-warning btn-sm">
+        @csrf
+        @method('DELETE')
 
-                                    Modifier
+        <button type="submit"
+                class="btn btn-danger btn-sm"
+                title="Supprimer"
+                onclick="return confirm('Supprimer cette dépense ?')">
+            <i class="bi bi-trash-fill"></i>
+        </button>
 
-                                </a>
+    </form>
 
-                                <form
-                                    action="{{ route('oloyes.destroy',$depense) }}"
-                                    method="POST"
-                                    class="d-inline">
-
-                                    @csrf
-                                    @method('DELETE')
-
-                                    <button
-                                        onclick="return confirm('Supprimer cette dépense ?')"
-                                        class="btn btn-danger btn-sm">
-
-                                        Supprimer
-
-                                    </button>
-
-                                </form>
-
-                            </td>
+</td>
 
                         </tr>
 

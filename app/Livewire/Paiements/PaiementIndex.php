@@ -239,7 +239,7 @@ class PaiementIndex extends Component
             $query->whereDate('date_paiement', '<=', $this->date_fin);
         }
 
-        $paiements = $query->orderByDesc('id')->paginate(25);
+        $paiements = $query->orderByDesc('id')->paginate(250000);
 
         return view('livewire.paiements.paiement-index', compact(
             'annees', 'cycles', 'classes', 'frais', 'inscriptions', 'paiements'
