@@ -1,9 +1,9 @@
 <div class="container-fluid py-4">
 
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h3 mb-0"> budgets DEPENSES</h1>
+        <h1 class="h3 mb-0">Budget des recettes</h1>
         <div class="d-flex gap-2">
-            <a href="{{ route('budgets-depenses.export-pdf', ['annee_id' => $anneeFiltre]) }}"
+            <a href="{{ route('budgets-recettes.export-pdf', ['annee_id' => $anneeFiltre]) }}"
                target="_blank" class="btn btn-outline-secondary">
                 <i class="bi bi-file-earmark-pdf"></i> Exporter en PDF
             </a>
@@ -55,25 +55,25 @@
         <div class="col-md-3">
             <div class="card shadow-sm h-100">
                 <div class="card-body">
-                    <div class="text-muted small">Total alloué</div>
-                    <div class="h4 mb-0">{{ number_format($totalAlloue, 0, ',', ' ') }} FCFA</div>
+                    <div class="text-muted small">Total prévu</div>
+                    <div class="h4 mb-0">{{ number_format($totalPrevu, 0, ',', ' ') }} FCFA</div>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
             <div class="card shadow-sm h-100">
                 <div class="card-body">
-                    <div class="text-muted small">Total utilisé</div>
-                    <div class="h4 mb-0">{{ number_format($totalUtilise, 0, ',', ' ') }} FCFA</div>
+                    <div class="text-muted small">Total réalisé</div>
+                    <div class="h4 mb-0">{{ number_format($totalRealise, 0, ',', ' ') }} FCFA</div>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
             <div class="card shadow-sm h-100">
                 <div class="card-body">
-                    <div class="text-muted small">Total restant</div>
-                    <div class="h4 mb-0 {{ $totalRestant < 0 ? 'text-danger' : '' }}">
-                        {{ number_format($totalRestant, 0, ',', ' ') }} FCFA
+                    <div class="text-muted small">Écart</div>
+                    <div class="h4 mb-0 {{ $totalEcart < 0 ? 'text-danger' : 'text-success' }}">
+                        {{ $totalEcart >= 0 ? '+' : '' }}{{ number_format($totalEcart, 0, ',', ' ') }} FCFA
                     </div>
                 </div>
             </div>
@@ -81,10 +81,10 @@
         <div class="col-md-3">
             <div class="card shadow-sm h-100">
                 <div class="card-body">
-                    <div class="text-muted small">Taux d'utilisation global</div>
+                    <div class="text-muted small">Taux de réalisation</div>
                     <div class="h4 mb-0">{{ $tauxGlobal }}%</div>
                     <div class="progress mt-1" style="height: 6px;">
-                        <div class="progress-bar {{ $tauxGlobal >= 100 ? 'bg-danger' : ($tauxGlobal >= 80 ? 'bg-warning' : 'bg-success') }}"
+                        <div class="progress-bar {{ $tauxGlobal >= 100 ? 'bg-success' : ($tauxGlobal >= 60 ? 'bg-info' : 'bg-warning') }}"
                              style="width: {{ min($tauxGlobal, 100) }}%"></div>
                     </div>
                 </div>
@@ -99,32 +99,32 @@
                 <thead class="table-light">
                     <tr>
                         <th>Catégorie</th>
-                        <th class="text-end">Alloué</th>
-                        <th class="text-end">Utilisé</th>
-                        <th class="text-end">Restant</th>
+                        <th class="text-end">Prévu</th>
+                        <th class="text-end">Réalisé</th>
+                        <th class="text-end">Écart</th>
                         <th style="width: 160px;">Taux</th>
                         <th class="text-end">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse ($budgets as $budget)
-                        <tr wire:key="budget-{{ $budget->id }}">
+                        <tr wire:key="budget-recette-{{ $budget->id }}">
                             <td>
                                 <span class="badge bg-secondary">{{ $budget->categorie->code }}</span>
                                 {{ $budget->categorie->nom }}
                             </td>
-                            <td class="text-end">{{ number_format($budget->montant_alloue, 0, ',', ' ') }} FCFA</td>
-                            <td class="text-end">{{ number_format($budget->montant_utilise, 0, ',', ' ') }} FCFA</td>
-                            <td class="text-end {{ $budget->montant_restant < 0 ? 'text-danger fw-semibold' : '' }}">
-                                {{ number_format($budget->montant_restant, 0, ',', ' ') }} FCFA
+                            <td class="text-end">{{ number_format($budget->montant_prevu, 0, ',', ' ') }} FCFA</td>
+                            <td class="text-end">{{ number_format($budget->montant_realise, 0, ',', ' ') }} FCFA</td>
+                            <td class="text-end {{ $budget->montant_ecart < 0 ? 'text-danger' : 'text-success' }} fw-semibold">
+                                {{ $budget->montant_ecart >= 0 ? '+' : '' }}{{ number_format($budget->montant_ecart, 0, ',', ' ') }}
                             </td>
                             <td>
                                 <div class="d-flex align-items-center gap-2">
                                     <div class="progress flex-grow-1" style="height: 8px;">
-                                        <div class="progress-bar {{ $budget->taux_utilisation >= 100 ? 'bg-danger' : ($budget->taux_utilisation >= 80 ? 'bg-warning' : 'bg-success') }}"
-                                             style="width: {{ min($budget->taux_utilisation, 100) }}%"></div>
+                                        <div class="progress-bar {{ $budget->taux_realisation >= 100 ? 'bg-success' : ($budget->taux_realisation >= 60 ? 'bg-info' : 'bg-warning') }}"
+                                             style="width: {{ min($budget->taux_realisation, 100) }}%"></div>
                                     </div>
-                                    <span class="small text-muted">{{ $budget->taux_utilisation }}%</span>
+                                    <span class="small text-muted">{{ $budget->taux_realisation }}%</span>
                                 </div>
                             </td>
                             <td class="text-end">
@@ -141,7 +141,7 @@
                     @empty
                         <tr>
                             <td colspan="6" class="text-center text-muted py-4">
-                                Aucun budget défini pour cette année scolaire.
+                                Aucun budget de recette défini pour cette année scolaire.
                             </td>
                         </tr>
                     @endforelse
@@ -152,13 +152,13 @@
 
     {{-- Modale création / édition --}}
     @if ($showModal)
-        <div class="modal d-block" tabindex="-1" style="background: rgba(0,0,0,.5);" wire:key="modal-budget">
+        <div class="modal d-block" tabindex="-1" style="background: rgba(0,0,0,.5);" wire:key="modal-budget-recette">
             <div class="modal-dialog">
                 <div class="modal-content">
                     <form wire:submit="enregistrer">
                         <div class="modal-header">
                             <h5 class="modal-title">
-                                {{ $modeEdition ? 'Modifier le budget' : 'Nouveau budget' }}
+                                {{ $modeEdition ? 'Modifier le budget de recette' : 'Nouveau budget de recette' }}
                             </h5>
                             <button type="button" class="btn-close" wire:click="fermerModal"></button>
                         </div>
@@ -182,19 +182,16 @@
                                     @foreach ($this->categoriesDisponibles as $categorie)
                                         <option value="{{ $categorie->id }}">{{ $categorie->nom }}</option>
                                     @endforeach
-                                    @if ($modeEdition)
-                                        {{-- En édition, la catégorie actuelle doit rester visible même si "déjà budgétisée" --}}
-                                    @endif
                                 </select>
                                 @error('categorie_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                 <div class="form-text">Seules les catégories sans budget déjà défini pour cette année sont proposées.</div>
                             </div>
 
                             <div class="mb-3">
-                                <label class="form-label">Montant alloué (FCFA) <span class="text-danger">*</span></label>
-                                <input type="number" step="0.01" wire:model="montant_alloue"
-                                       class="form-control @error('montant_alloue') is-invalid @enderror">
-                                @error('montant_alloue') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                <label class="form-label">Montant prévu (FCFA) <span class="text-danger">*</span></label>
+                                <input type="number" step="0.01" wire:model="montant_prevu"
+                                       class="form-control @error('montant_prevu') is-invalid @enderror">
+                                @error('montant_prevu') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
                         </div>
 
@@ -213,7 +210,7 @@
 
     {{-- Modale confirmation suppression --}}
     @if ($showSuppressionModal)
-        <div class="modal d-block" tabindex="-1" style="background: rgba(0,0,0,.5);" wire:key="modal-suppression-budget">
+        <div class="modal d-block" tabindex="-1" style="background: rgba(0,0,0,.5);" wire:key="modal-suppression-budget-recette">
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
@@ -221,7 +218,7 @@
                         <button type="button" class="btn-close" wire:click="annulerSuppression"></button>
                     </div>
                     <div class="modal-body">
-                        Es-tu sûr de vouloir supprimer ce budget ?
+                        Es-tu sûr de vouloir supprimer ce budget de recette ?
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-outline-secondary" wire:click="annulerSuppression">Annuler</button>

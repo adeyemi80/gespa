@@ -15,5 +15,22 @@ class BudgetController extends Controller
         return view('budgets.index');
     }
 
+    public function recettes()
+    {
+
+        return view('budgets.recettes');
+    }
+
+    public function depenses()
+    {
+
+        return view('budgets.depenses');
+    }
+
+    public function synthese()
+    {
+
+        return view('budgets.synthese');
+    }
     
 }

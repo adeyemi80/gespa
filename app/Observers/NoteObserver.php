@@ -4,7 +4,7 @@
 namespace App\Observers;
 
 use App\Models\Note;
-use App\Models\Moyenne;
+use App\Events\NotesUpdated;
 
 class NoteObserver
 {
@@ -21,5 +21,12 @@ class NoteObserver
             $note->moyenne_matiere = round($moyenneMatiere->avg(), 2);
             $note->saveQuietly(); // évite une boucle infinie
         }
+
+        // 🔧 CORRECTIF : déclencher le recalcul de la moyenne générale de l'élève
+        event(new NotesUpdated(
+            $note->inscription_id,
+            $note->inscription->annee_id,
+            $note->inscription->classe_id
+        ));
     }
 }

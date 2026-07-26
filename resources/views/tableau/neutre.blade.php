@@ -132,6 +132,7 @@
         }
 
         * { box-sizing: border-box; }
+        [x-cloak] { display: none !important; }
         html, body {
             height: 100%; margin: 0;
             overflow-x: hidden; overflow-y: auto;
@@ -510,5 +511,95 @@
 
     @stack('scripts')
     @yield('scripts')
+    {{--
+    Version JavaScript pur (sans Alpine.js) — à coller à la place du bloc précédent,
+    juste avant la fermeture de </body> dans resources/views/tableau/neutre.blade.php.
+--}}
+
+@auth
+<div id="modal-inactivite" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:2000;">
+    <div class="modal-dialog modal-dialog-centered" style="max-width:400px; margin:10% auto;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-warning">
+                    <i class="bi bi-exclamation-triangle-fill"></i> Session inactive
+                </h5>
+            </div>
+            <div class="modal-body text-center">
+                <p>Tu vas être déconnecté automatiquement dans</p>
+                <div class="display-4 fw-bold text-danger" id="compteur-inactivite">60</div>
+                <p class="text-muted small mb-0">secondes, par mesure de sécurité.</p>
+            </div>
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-primary" id="btn-rester-connecte">
+                    Je suis toujours là
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form id="form-deconnexion-auto" action="{{ route('logout') }}" method="POST" class="d-none">
+    @csrf
+</form>
+
+<script>
+(function () {
+    const DUREE_AVANT_AVERTISSEMENT = 25 * 60 * 1000; // 25 minutes en ms
+    const DUREE_AVERTISSEMENT = 60; // secondes
+
+    const modal = document.getElementById('modal-inactivite');
+    const compteurEl = document.getElementById('compteur-inactivite');
+    const btnRester = document.getElementById('btn-rester-connecte');
+    const formLogout = document.getElementById('form-deconnexion-auto');
+
+    let timerInactivite = null;
+    let timerCompteARebours = null;
+    let avertissementVisible = false;
+    let secondesRestantes = DUREE_AVERTISSEMENT;
+
+    function reinitialiserTimer() {
+        if (avertissementVisible) return;
+        clearTimeout(timerInactivite);
+        timerInactivite = setTimeout(afficherAvertissement, DUREE_AVANT_AVERTISSEMENT);
+    }
+
+    function afficherAvertissement() {
+        avertissementVisible = true;
+        secondesRestantes = DUREE_AVERTISSEMENT;
+        compteurEl.textContent = secondesRestantes;
+        modal.style.display = 'block';
+
+        timerCompteARebours = setInterval(function () {
+            secondesRestantes--;
+            compteurEl.textContent = secondesRestantes;
+            if (secondesRestantes <= 0) {
+                deconnexionForcee();
+            }
+        }, 1000);
+    }
+
+    function resterConnecte() {
+        avertissementVisible = false;
+        modal.style.display = 'none';
+        clearInterval(timerCompteARebours);
+        reinitialiserTimer();
+    }
+
+    function deconnexionForcee() {
+        clearInterval(timerCompteARebours);
+        formLogout.submit();
+    }
+
+    btnRester.addEventListener('click', resterConnecte);
+
+    ['mousemove', 'keydown', 'scroll', 'click', 'touchstart'].forEach(function (evenement) {
+        window.addEventListener(evenement, reinitialiserTimer);
+    });
+
+    reinitialiserTimer();
+})();
+</script>
+@endauth
 </body>
 </html>

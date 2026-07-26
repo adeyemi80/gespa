@@ -41,8 +41,13 @@
 
                 <div class="mb-3">
                     <label for="password" class="form-label fw-semibold">Mot de Passe</label>
-                    <input id="password" type="password" name="password"
-                           class="form-control form-control-lg rounded-3 shadow-sm" required autocomplete="current-password">
+                    <div class="input-group input-group-lg">
+                        <input id="password" type="password" name="password"
+                               class="form-control rounded-start-3 shadow-sm" required autocomplete="current-password">
+                        <button type="button" id="togglePassword" class="btn btn-outline-secondary rounded-end-3" tabindex="-1" aria-label="Afficher le mot de passe">
+                            <i class="bi bi-eye-slash" id="togglePasswordIcon"></i>
+                        </button>
+                    </div>
                 </div>
 
                 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -90,5 +95,29 @@
     .btn-primary:hover {
         background: linear-gradient(90deg, #0056b3, #004085);
     }
+    #togglePassword {
+        border-left: none;
+    }
+    #togglePassword:focus {
+        box-shadow: none;
+        border-color: #ced4da;
+    }
 </style>
+
+<script>
+    document.getElementById('togglePassword').addEventListener('click', function () {
+        const input = document.getElementById('password');
+        const icon = document.getElementById('togglePasswordIcon');
+
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.classList.remove('bi-eye-slash');
+            icon.classList.add('bi-eye');
+        } else {
+            input.type = 'password';
+            icon.classList.remove('bi-eye');
+            icon.classList.add('bi-eye-slash');
+        }
+    });
+</script>
 @endsection

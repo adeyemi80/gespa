@@ -8,19 +8,18 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('types_depenses', function (Blueprint $table) {
+        Schema::create('categories_recettes', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('categorie_id')->constrained('categories_depenses')->cascadeOnDelete();
+            $table->string('code', 10)->unique();
             $table->string('nom');
             $table->text('description')->nullable();
             $table->boolean('actif')->default(true);
-            $table->unique(['categorie_id', 'nom']); // évite les doublons par catégorie
             $table->timestamps();
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('types_depenses');
+        Schema::dropIfExists('categories_recettes');
     }
 };

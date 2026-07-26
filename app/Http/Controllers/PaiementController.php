@@ -124,15 +124,6 @@ public function store(Request $request)
                 'updated_at'   => now(),
             ]);
 
-        // Enregistre une recette
-        Recette::create([
-            'paiement_id'    => $paiement->id,
-            'inscription_id' => $inscription->id,
-            'montant_verse'  => $paiement->montant_verse,
-            'date_paiement'  => $paiement->date_paiement,
-            'mode_paiement'  => $paiement->mode_paiement,
-            'numero_recu'    => $paiement->numero_recu,
-        ]);
 
         DB::commit();
 
@@ -500,16 +491,6 @@ public function storeUP(Request $request)
                     'statut'       => $statut,
                     'updated_at'   => now(),
                 ]);
-
-            // 🧾 Recette
-            Recette::create([
-                'paiement_id'    => $paiement->id,
-                'inscription_id' => $inscription->id,
-                'montant_verse'  => $paiement->montant_verse,
-                'date_paiement'  => $paiement->date_paiement,
-                'mode_paiement'  => $paiement->mode_paiement,
-                'numero_recu'    => $numeroLot,
-            ]);
 
             // 📋 Détails pour le reçu
             $frais = Frais::find($frais_id);

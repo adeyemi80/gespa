@@ -59,6 +59,9 @@
                             <option value="sortie">Sortie pédagogique</option>
                             <option value="noel">Frais de Noël</option>
                             <option value="transport">Transport</option>
+                            <option value="assurance scoplaire">Assurance Scolaire</option>
+                            <option value="informatique">Informatique</option>
+                            <option value="test d'entrée">Test d'entrée</option>
                         </select>
                     </div>
 

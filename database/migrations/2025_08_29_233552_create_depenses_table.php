@@ -16,7 +16,6 @@ return new class extends Migration
             $table->date('date'); // date de la dépense
             $table->string('libelle'); // description (achat matériel, salaires, etc.)
             $table->decimal('montant', 20, 2); // montant dépensé
-            $table->string('categorie')->nullable(); // catégorie optionnelle (salaires, fournitures...)
             $table->string('description')->nullable(); 
         });
     }

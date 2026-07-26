@@ -19,6 +19,9 @@ use App\Http\Controllers\InvestissementController;
 use App\Http\Controllers\ParametreController;
 use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\BudgetDepensePdfController;
+use App\Http\Controllers\BudgetRecettePdfController;
+use App\Http\Controllers\BudgetSyntheseExportController;
+use App\Http\Controllers\CategorieRecetteController;
 use App\Http\Controllers\CompteController;
 use App\Http\Controllers\CategorieController;
 use App\Http\Controllers\TransactionController;
@@ -407,6 +410,11 @@ Route::prefix('bulletins')->name('bulletins.')->group(function () {
 Route::get('/bulletins', \App\Livewire\Bulletins\BulletinManager::class)->name('bulletins.manager');
 Route::get('/bulletins/bulletins', [App\Http\Controllers\BulletinController::class, 'bulletins'])->name('bulletins.bulletins');
 Route::resource('recettes', App\Http\Controllers\RecetteController::class);
+Route::middleware(['auth'])->group(function () {
+    Route::resource('categories-recettes', CategorieRecetteController::class);
+    Route::get('budgets-recettes/export-pdf', [BudgetRecettePdfController::class, 'export']) ->name('budgets-recettes.export-pdf');
+    Route::get('/budgets-recettes', \App\Livewire\Recettes\BudgetRecetteManager::class) ->name('budgets-recettes.index');
+});
 //Route::resource('depenses', App\Http\Controllers\DepenseController::class);
 Route::resource( 'categories-depenses', CategorieDepenseController::class);
 Route::resource('types-depenses', TypeDepenseController::class);
@@ -424,6 +432,10 @@ Route::resource('categories', App\Http\Controllers\CategorieController::class)->
 Route::resource('transactions', App\Http\Controllers\TransactionController::class);
 Route::resource('comptes', App\Http\Controllers\CompteController::class);
 Route::get('/budgets', [BudgetController::class, 'index'])->name('budgets.index');
+Route::get('/budgets/recettes', [BudgetController::class, 'recettes'])->name('budgets.recettes');
+Route::get('/budgets/depenses', [BudgetController::class, 'depenses'])->name('budgets.depenses');
+Route::get('/budgets/synthese', [BudgetController::class, 'synthese'])->name('budgets.synthese');
+Route::get('/budget-synthese/export-pdf', [BudgetSyntheseExportController::class, 'pdf'])->name('budget-synthese.export-pdf');
 // Passage des élèves
 // routes/web.php
 // routes/web.php

@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
 
 class Frais extends Model
 {
@@ -13,6 +15,7 @@ class Frais extends Model
         'nom',
         'description',
         'montant',
+        'categorie_recette_id'
     ];
 
     // 🔗 Plusieurs classes
@@ -74,5 +77,10 @@ public function anneeClasseFrais()
 {
     return $this->hasMany(AnneeClasseFrais::class);
 }
+public function categorieRecette(): BelongsTo
+    {
+        return $this->belongsTo(CategorieRecette::class);
+    }
+
 
 }

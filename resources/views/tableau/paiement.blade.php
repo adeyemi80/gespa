@@ -100,10 +100,58 @@
                     ['route'=>'types-depenses.create','color'=>'info','icon'=>'journal-bookmark-fill','title'=>'CREER DES TYPES DE DEPENSES'],
                     ['route'=>'types-depenses.index','color'=>'info','icon'=>'journal-bookmark-fill','title'=>'DES TYPES DE DEPENSES'],
                     ['route'=>'depenses.live','color'=>'info','icon'=>'journal-bookmark-fill','title'=>'LES DEPENSES'],
-                    ['route'=>'budgets.index','color'=>'danger','icon'=>'journal-bookmark-fill','title'=>'LES BUDGETS'],
+                    ['route'=>'budgets.depenses','color'=>'danger','icon'=>'journal-bookmark-fill','title'=>'BUDGETS DEPENSES'],
                     
                     
                 ];
+            @endphp
+
+            @foreach($cards2 as $c)
+                <div class="col-xl-3 col-lg-4 col-md-6">
+                    <a href="{{ route($c['route']) }}" class="text-decoration-none">
+                        <div class="card dashboard-card bg-{{ $c['color'] }} text-white">
+                            <div class="card-body">
+                                <i class="bi bi-{{ $c['icon'] }} dashboard-icon"></i>
+                                <h6 class="dashboard-title">{{ $c['title'] }}</h6>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            @endforeach
+        </div>
+
+         <div class="row g-3 mb-4">
+
+            @php
+                $cards2 = [
+                    ['route'=>'budgets.recettes','color'=>'info','icon'=>'journal-bookmark-fill','title'=>'BUDGETS RECETTES'],
+                     ['route'=>'categories-recettes.create','color'=>'info','icon'=>'journal-bookmark-fill','title'=>'CATEGORIES DE RECETTES'],
+                      ['route'=>'categories-recettes.index','color'=>'info','icon'=>'journal-bookmark-fill','title'=>'CATEGORIES'],
+                     ['route'=>'budgets.synthese','color'=>'info','icon'=>'journal-bookmark-fill','title'=>'BUDGET SYNTHESE'],
+                ];
+            @endphp
+
+            @foreach($cards2 as $c)
+                <div class="col-xl-3 col-lg-4 col-md-6">
+                    <a href="{{ route($c['route']) }}" class="text-decoration-none">
+                        <div class="card dashboard-card bg-{{ $c['color'] }} text-white">
+                            <div class="card-body">
+                                <i class="bi bi-{{ $c['icon'] }} dashboard-icon"></i>
+                                <h6 class="dashboard-title">{{ $c['title'] }}</h6>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            @endforeach
+        </div>
+ <div class="row g-3 mb-4">
+
+            @php
+                $cards2 = [
+                    ['route'=>'recettes.index','color'=>'info','icon'=>'journal-bookmark-fill','title'=>'RECETTES'],
+                     
+                    
+                    ];
             @endphp
 
             @foreach($cards2 as $c)

@@ -1,27 +1,51 @@
 <?php
+// app/Models/Recette.php
 
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Recette extends Model
 {
     use HasFactory;
 
-    // Champs qu'on peut remplir en masse
+    public $timestamps = true;
+
     protected $fillable = [
+        'date_paiement',
+        'montant_verse',
         'paiement_id',
         'inscription_id',
-        'montant_verse',
-        'date_paiement',
         'mode_paiement',
-        'numero_recu'
+        'numero_recu',
+        'categorie_recette_id',
+        'annee_id',
     ];
 
-    // Relation vers le paiement
-    public function paiement()
+    protected $casts = [
+        'date_paiement' => 'date',
+        'montant_verse' => 'decimal:2',
+    ];
+
+    public function paiement(): BelongsTo
     {
         return $this->belongsTo(Paiement::class);
+    }
+
+    public function inscription(): BelongsTo
+    {
+        return $this->belongsTo(Inscription::class);
+    }
+
+    public function categorieRecette(): BelongsTo
+    {
+        return $this->belongsTo(CategorieRecette::class);
+    }
+
+    public function annee(): BelongsTo
+    {
+        return $this->belongsTo(Annee::class);
     }
 }

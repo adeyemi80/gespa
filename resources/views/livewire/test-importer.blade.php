@@ -4,7 +4,6 @@
 <div>
     {{-- Include Livewire / Alpine prerequisites in your layout:
          @livewireStyles / @livewireScripts already in app layout
-         <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
     --}}
 
     <div class="container py-4">
