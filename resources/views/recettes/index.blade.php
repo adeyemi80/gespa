@@ -73,6 +73,7 @@
                         <th class="py-3 text-muted small text-uppercase" style="letter-spacing:.03em;">Mode paiement</th>
                         <th class="py-3 text-muted small text-uppercase" style="letter-spacing:.03em;">N° reçu</th>
                         <th class="py-3 text-end text-muted small text-uppercase" style="letter-spacing:.03em;">Montant versé</th>
+                        <th class="py-3 pe-4 text-end text-muted small text-uppercase" style="letter-spacing:.03em;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -102,7 +103,7 @@
                             <td class="text-end fw-semibold text-success">
                                 {{ number_format($recette->montant_verse, 2, ',', ' ') }}
                             </td>
-                            {{--<td class="pe-4 text-end">
+                            <td class="pe-4 text-end">
                                 <div class="btn-group btn-group-sm">
                                     <a href="{{ route('recettes.show', $recette) }}" class="btn btn-outline-primary" title="Voir">
                                         <i class="bi bi-eye"></i>
@@ -119,7 +120,7 @@
                                         </button>
                                     </form>
                                 </div>
-                            </td>--}}
+                            </td>
                         </tr>
                     @empty
                         <tr>

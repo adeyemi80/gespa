@@ -38,6 +38,10 @@ class RecetteController extends Controller
      */
     public function create(): View
     {
+        $annees = Annee::orderByDesc('id')->get();
+        $categories = CategorieRecette::orderBy('nom')->get();
+        $inscriptions = Inscription::orderBy('id')->get(); // ⚠️ adapte selon ton besoin (probablement une recherche/select2 plutôt qu'un get() complet)
+        $paiements = Paiement::orderBy('id')->get(); // idem
 
         return view('recettes.create', compact('annees', 'categories', 'inscriptions', 'paiements'));
     }
@@ -50,22 +54,54 @@ class RecetteController extends Controller
     /**
      * Affiche une recette.
      */
-    
+    public function show(Recette $recette): View
+    {
+        $recette->load(['categorieRecette', 'annee', 'inscription', 'paiement']);
+
+        return view('recettes.show', compact('recette'));
+    }
+
     /**
      * Formulaire d'édition.
      */
+    public function edit(Recette $recette): View
+    {
+        $annees = Annee::orderByDesc('id')->get();
+        $categories = CategorieRecette::orderBy('nom')->get();
+        $inscriptions = Inscription::orderBy('id')->get();
+        $paiements = Paiement::orderBy('id')->get();
 
+        return view('recettes.edit', compact('recette', 'annees', 'categories', 'inscriptions', 'paiements'));
+    }
 
     /**
      * Met à jour une recette.
      */
-    
+    public function update(Request $request, Recette $recette): RedirectResponse
+    {
+        $validated = $this->validateRecette($request, $recette->id);
+
+        $recette->update($validated);
+
+        return redirect()
+            ->route('recettes.index')
+            ->with('success', 'Recette mise à jour avec succès.');
+    }
+
     /**
      * Supprime une recette.
      */
-    
+    public function destroy(Recette $recette): RedirectResponse
+    {
+        $recette->delete();
+
+        return redirect()
+            ->route('recettes.index')
+            ->with('success', 'Recette supprimée avec succès.');
+    }
+
     /**
      * Règles de validation communes à store() et update().
      */
-    
+   
 }

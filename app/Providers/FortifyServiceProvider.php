@@ -50,5 +50,17 @@ class FortifyServiceProvider extends ServiceProvider
         return redirect()->route('users.create')
             ->with('success', 'Utilisateur créé avec Succès');
     });
+    Fortify::loginView(function () {
+        return view('auth.login');
+    });
+
+    Fortify::requestPasswordResetLinkView(function () {
+        return view('auth.forgot-password');
+    });
+
+    Fortify::resetPasswordView(function (Request $request) {
+        return view('auth.reset-password', ['request' => $request]);
+    });
+
     }
 }

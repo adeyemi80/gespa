@@ -15,6 +15,7 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Livewire\WithPagination;
+use App\Models\BudgetDepense;
 
 #[Layout('layouts.app')]
 #[Title('Gestion des dépenses')]
@@ -319,19 +320,31 @@ class DepenseManager extends Component
         $this->messageSucces = "Dépense {$depense->numero_piece} validée avec succès.";
     }
 
-    public function marquerPayee(int $id): void
-    {
-        $depense = Depense::findOrFail($id);
+   public function marquerPayee(int $id): void
+{
+    $depense = Depense::findOrFail($id);
 
-        if ($depense->statut !== 'validee') {
-            $this->messageErreur = 'Seule une dépense validée peut être marquée comme payée.';
-            return;
-        }
+    if ($depense->statut !== 'validee') {
+        $this->addError('statut', 'Seule une dépense validée peut être marquée comme payée.');
+        return;
+    }
 
+    DB::transaction(function () use ($depense) {
         $depense->update(['statut' => 'payee']);
 
-        $this->messageSucces = "Dépense {$depense->numero_piece} marquée comme payée.";
-    }
+        if ($depense->type_depense_id && $depense->annee_id) {
+            $categorieId = TypeDepense::where('id', $depense->type_depense_id)->value('categorie_id');
+
+            if ($categorieId) {
+                BudgetDepense::where('categorie_id', $categorieId)
+                    ->where('annee_id', $depense->annee_id)
+                    ->increment('montant_utilise', $depense->montant);
+            }
+        }
+    });
+
+    $this->messageSucces = 'Dépense marquée comme payée.';
+}
 
     public function rejeter(int $id, string $motif = ''): void
     {
