@@ -2,12 +2,22 @@
 @extends('tableau.neutre')
 
 @section('content')
+<button 
+    onclick="if (window.history.length > 1) { history.back(); } else { window.location.href='{{ route('tableau.accueil') }}'; }" 
+    class="btn btn-secondary">
+    ⬅️ Retour
+</button>
 <div class="container-fluid py-4">
 
     {{-- En-tête --}}
     <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
         <div>
-            <h1 class="h3 fw-bold mb-1">Recettes</h1>
+            <h1 class="h3 fw-bold mb-1 d-flex align-items-center gap-2">
+                <span class="d-inline-flex align-items-center justify-content-center rounded-3 bg-success-subtle text-success" style="width: 40px; height: 40px;">
+                    <i class="bi bi-cash-coin fs-5"></i>
+                </span>
+                Recettes
+            </h1>
             <p class="text-muted mb-0 small">Liste des paiements et encaissements enregistrés</p>
         </div>
         {{--<a href="{{ route('recettes.create') }}" class="btn btn-primary shadow-sm">
@@ -16,14 +26,39 @@
     </div>
 
     @if (session('success'))
-        <div class="alert alert-success d-flex align-items-center shadow-sm" role="alert">
+        <div class="alert alert-success d-flex align-items-center shadow-sm border-0" role="alert">
             <i class="bi bi-check-circle-fill me-2"></i>
             {{ session('success') }}
         </div>
     @endif
 
+    {{-- Résumé rapide --}}
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100" style="border-left: 4px solid #198754 !important;">
+                <div class="card-body">
+                    <p class="text-uppercase text-muted small mb-1 fw-semibold" style="font-size:.72rem; letter-spacing:.04em;">Total affiché</p>
+                    <p class="h5 fw-bold mb-0 text-success">
+                        {{ number_format($recettes->sum('montant_verse'), 0, ',', ' ') }} <span class="fs-6 text-muted">FCFA</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100" style="border-left: 4px solid #0dcaf0 !important;">
+                <div class="card-body">
+                    <p class="text-uppercase text-muted small mb-1 fw-semibold" style="font-size:.72rem; letter-spacing:.04em;">Nombre de recettes</p>
+                    <p class="h5 fw-bold mb-0 text-info">{{ $recettes->total() }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     {{-- Filtres --}}
     <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-primary-subtle border-0 py-2">
+            <span class="text-primary-emphasis fw-semibold small"><i class="bi bi-funnel me-1"></i> Filtres</span>
+        </div>
         <div class="card-body">
             <form method="GET" action="{{ route('recettes.index') }}" class="row g-3 align-items-end">
                 <div class="col-auto">
@@ -52,7 +87,7 @@
 
                 @if (request('annee_id') || request('categorie_recette_id'))
                     <div class="col-auto">
-                        <a href="{{ route('recettes.index') }}" class="btn btn-outline-secondary">
+                        <a href="{{ route('recettes.index') }}" class="btn btn-outline-danger">
                             <i class="bi bi-x-lg me-1"></i> Réinitialiser
                         </a>
                     </div>
@@ -66,20 +101,22 @@
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
                 <thead>
-                    <tr class="table-light">
-                        <th class="ps-4 py-3 text-muted small text-uppercase" style="letter-spacing:.03em;">Date</th>
-                        <th class="py-3 text-muted small text-uppercase" style="letter-spacing:.03em;">Catégorie</th>
-                        <th class="py-3 text-muted small text-uppercase" style="letter-spacing:.03em;">Année</th>
-                        <th class="py-3 text-muted small text-uppercase" style="letter-spacing:.03em;">Mode paiement</th>
-                        <th class="py-3 text-muted small text-uppercase" style="letter-spacing:.03em;">N° reçu</th>
-                        <th class="py-3 text-end text-muted small text-uppercase" style="letter-spacing:.03em;">Montant versé</th>
-                        <th class="py-3 pe-4 text-end text-muted small text-uppercase" style="letter-spacing:.03em;">Actions</th>
+                    <tr class="table-primary">
+                        <th class="ps-4 py-3 small text-uppercase" style="letter-spacing:.03em;">Date</th>
+                        <th class="py-3 small text-uppercase" style="letter-spacing:.03em;">Catégorie</th>
+                        <th class="py-3 small text-uppercase" style="letter-spacing:.03em;">Année</th>
+                        <th class="py-3 small text-uppercase" style="letter-spacing:.03em;">Mode paiement</th>
+                        <th class="py-3 small text-uppercase" style="letter-spacing:.03em;">N° reçu</th>
+                        <th class="py-3 text-end small text-uppercase" style="letter-spacing:.03em;">Montant versé</th>
+                        <th class="py-3 pe-4 text-end small text-uppercase" style="letter-spacing:.03em;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse ($recettes as $recette)
                         <tr>
-                            <td class="ps-4">{{ $recette->date_paiement->format('d/m/Y') }}</td>
+                            <td class="ps-4">
+                                <i class="bi bi-calendar3 text-muted me-1"></i>{{ $recette->date_paiement->format('d/m/Y') }}
+                            </td>
                             <td>
                                 @if ($recette->categorieRecette)
                                     <span class="badge bg-primary-subtle text-primary-emphasis fw-semibold">
@@ -89,18 +126,31 @@
                                     <span class="text-muted">—</span>
                                 @endif
                             </td>
-                            <td>{{ $recette->annee?->nom ?? '—' }}</td>
                             <td>
+                                <span class="badge bg-info-subtle text-info-emphasis fw-semibold">
+                                    {{ $recette->annee?->nom ?? '—' }}
+                                </span>
+                            </td>
+                            <td>
+                                @php
+                                    $modeColors = [
+                                        'Espèces' => 'success',
+                                        'Espèce' => 'success',
+                                        'Mobile Money' => 'warning',
+                                        'Chèque' => 'secondary',
+                                    ];
+                                    $couleur = $modeColors[$recette->mode_paiement] ?? 'secondary';
+                                @endphp
                                 @if ($recette->mode_paiement)
-                                    <span class="badge bg-secondary-subtle text-secondary-emphasis">
+                                    <span class="badge bg-{{ $couleur }}-subtle text-{{ $couleur }}-emphasis">
                                         {{ $recette->mode_paiement }}
                                     </span>
                                 @else
                                     <span class="text-muted">—</span>
                                 @endif
                             </td>
-                            <td>{{ $recette->numero_recu ?? '—' }}</td>
-                            <td class="text-end fw-semibold text-success">
+                            <td class="text-muted small">{{ $recette->numero_recu ?? '—' }}</td>
+                            <td class="text-end fw-bold text-success">
                                 {{ number_format($recette->montant_verse, 2, ',', ' ') }}
                             </td>
                             <td class="pe-4 text-end">

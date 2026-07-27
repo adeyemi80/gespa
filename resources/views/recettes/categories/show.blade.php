@@ -1,6 +1,11 @@
 @extends('tableau.neutre')
 
 @section('content')
+<button 
+    onclick="if (window.history.length > 1) { history.back(); } else { window.location.href='{{ route('tableau.accueil') }}'; }" 
+    class="btn btn-secondary">
+    ⬅️ Retour
+</button>
 <div class="container-fluid py-4">
 
     <div class="d-flex justify-content-between align-items-center mb-4">
