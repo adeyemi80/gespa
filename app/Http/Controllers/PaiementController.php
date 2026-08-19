@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Paiement;
+use App\Services\ThermalPrinterService;
+use App\Services\RecuThermiqueService;
 use App\Models\Frais;
 use App\Models\Classe;
 use App\Models\Cycle;
@@ -515,7 +517,25 @@ public function storeUP(Request $request)
     'message' => '✅ Paiement enregistré avec Succès !',
     'redirect' => route('paiements.recu', $numeroLot)
 ]);
+// Paiements enregistrés avec succès
 
+try {
+
+    $this->imprimerTicketAutomatiquement($numeroLot);
+
+} catch (\Throwable $e) {
+
+    // Le paiement reste enregistré même si
+    // l'imprimante rencontre un problème.
+
+    \Log::error(
+        'Erreur impression reçu',
+        [
+            'numero_lot' => $numeroLot,
+            'message' => $e->getMessage(),
+        ]
+    );
+}
     } catch (\Exception $e) {
 
         DB::rollBack();

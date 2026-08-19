@@ -9,6 +9,9 @@ use App\Models\Inscription;
 use App\Models\Paiement;
 use Livewire\Component;
 use Illuminate\Support\Str;
+use App\Services\ThermalPrinterService;
+use App\Services\RecuThermiqueService;
+use Illuminate\Support\Facades\Log;
 
 class PaiementMultiple extends Component
 {
@@ -175,69 +178,437 @@ class PaiementMultiple extends Component
         return collect($this->montants)->sum();
     }
 
-    public function enregistrer()
-    {
-        $this->validate([
-            'inscriptionId' => 'required|exists:inscriptions,id',
-            'modePaiement'  => 'required|string',
-            'datePaiement'  => 'required|date',
-        ]);
+   public function enregistrer()
+{
+    $this->validate([
+        'inscriptionId' => 'required|exists:inscriptions,id',
+        'modePaiement'  => 'required|string',
+        'datePaiement'  => 'required|date',
+    ]);
 
-        $fraisSelectionnes = collect($this->fraisDisponibles)
-            ->filter(fn($f) => $f['selectionne']);
+    $fraisSelectionnes = collect(
+        $this->fraisDisponibles
+    )->filter(
+        fn($f) => $f['selectionne']
+    );
 
-        if ($fraisSelectionnes->isEmpty()) {
-            $this->addError('frais', 'Veuillez sélectionner au moins un frais.');
+    if ($fraisSelectionnes->isEmpty()) {
+
+        $this->addError(
+            'frais',
+            'Veuillez sélectionner au moins un frais.'
+        );
+
+        return;
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Validation des montants
+    |--------------------------------------------------------------------------
+    */
+
+    foreach ($fraisSelectionnes as $f) {
+
+        $montant =
+            $this->montants[$f['frais_id']] ?? 0;
+
+
+        if (!$montant || $montant <= 0) {
+
+            $this->addError(
+                'frais',
+                "Le montant pour « {$f['nom']} » est invalide."
+            );
+
             return;
         }
 
-        // Validation des montants
-        foreach ($fraisSelectionnes as $f) {
-            $montant = $this->montants[$f['frais_id']] ?? 0;
-            if (!$montant || $montant <= 0) {
-                $this->addError('frais', "Le montant pour « {$f['nom']} » est invalide.");
-                return;
-            }
-            if ($montant > $f['reste']) {
-                $this->addError('frais', "Le montant pour « {$f['nom']} » dépasse le reste dû ({$f['reste']} FCFA).");
-                return;
-            }
+
+        if ($montant > $f['reste']) {
+
+            $this->addError(
+                'frais',
+                "Le montant pour « {$f['nom']} » dépasse le reste dû ({$f['reste']} FCFA)."
+            );
+
+            return;
         }
-
-        $numeroLot   = 'LOT-' . strtoupper(Str::random(8)) . '-' . now()->format('Ymd');
-        $inscription = Inscription::with('frais')->findOrFail($this->inscriptionId);
-
-        foreach ($fraisSelectionnes as $f) {
-            $montant = $this->montants[$f['frais_id']];
-
-            Paiement::create([
-                'inscription_id' => $this->inscriptionId,
-                'frais_id'       => $f['frais_id'],
-                'montant_verse'  => $montant,
-                'mode_paiement'  => $this->modePaiement,
-                'date_paiement'  => $this->datePaiement,
-                'numero_recu'    => $numeroLot,
-            ]);
-
-            $inscription->frais()->updateExistingPivot($f['frais_id'], [
-                'reste' => max(0, $f['reste'] - $montant),
-            ]);
-        }
-
-        $this->numeroLotGenere = $numeroLot;
-        $this->successMessage  = 'Paiement enregistré avec succès !';
-        $this->dispatch('masquerSucces');
-        $this->dispatch('paiement-enregistre');
-        // ✅ Dispatcher le ticket AVANT le reset
-        $this->dispatch('ouvrirTicket', numeroLot: $numeroLot);
-
-        // Reset du formulaire (sauf filtres)
-        $this->inscriptionId    = null;
-        $this->fraisDisponibles = [];
-        $this->montants         = [];
-        $this->resetTotaux();
     }
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Numéro du lot / reçu
+    |--------------------------------------------------------------------------
+    */
+
+    $numeroLot =
+        'LOT-' .
+        strtoupper(Str::random(8)) .
+        '-' .
+        now()->format('Ymd');
+
+
+    $inscription = Inscription::with(
+        'frais'
+    )->findOrFail(
+        $this->inscriptionId
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | ENREGISTREMENT
+    |--------------------------------------------------------------------------
+    */
+
+    foreach ($fraisSelectionnes as $f) {
+
+        $montant =
+            $this->montants[$f['frais_id']];
+
+
+        Paiement::create([
+
+            'inscription_id' =>
+                $this->inscriptionId,
+
+            'frais_id' =>
+                $f['frais_id'],
+
+            'montant_verse' =>
+                $montant,
+
+            'mode_paiement' =>
+                $this->modePaiement,
+
+            'date_paiement' =>
+                $this->datePaiement,
+
+            'numero_recu' =>
+                $numeroLot,
+        ]);
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Mise à jour du reste
+        |--------------------------------------------------------------------------
+        */
+
+        $inscription->frais()
+            ->updateExistingPivot(
+                $f['frais_id'],
+                [
+                    'reste' =>
+                        max(
+                            0,
+                            $f['reste'] - $montant
+                        ),
+                ]
+            );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | SUCCÈS
+    |--------------------------------------------------------------------------
+    */
+
+    $this->numeroLotGenere =
+        $numeroLot;
+
+    $this->successMessage =
+        'Paiement enregistré avec succès !';
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | IMPRESSION AUTOMATIQUE
+    |--------------------------------------------------------------------------
+    */
+
+    try {
+
+        $this->imprimerRecu(
+            $numeroLot
+        );
+
+        $this->dispatch(
+            'impressionReussie',
+            numeroLot: $numeroLot
+        );
+
+    } catch (\Throwable $e) {
+
+        Log::error(
+            'Erreur impression reçu',
+            [
+                'numeroLot' =>
+                    $numeroLot,
+
+                'message' =>
+                    $e->getMessage(),
+            ]
+        );
+
+        $this->dispatch(
+            'impressionEchouee',
+            numeroLot: $numeroLot,
+            message: $e->getMessage()
+        );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Événements existants
+    |--------------------------------------------------------------------------
+    */
+
+    $this->dispatch(
+        'masquerSucces'
+    );
+
+    $this->dispatch(
+        'paiement-enregistre'
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Ouvrir le reçu dans GESPA
+    |--------------------------------------------------------------------------
+    */
+
+    $this->dispatch(
+        'ouvrirTicket',
+        numeroLot: $numeroLot
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | RESET
+    |--------------------------------------------------------------------------
+    */
+
+    $this->inscriptionId =
+        null;
+
+    $this->fraisDisponibles =
+        [];
+
+    $this->montants =
+        [];
+
+    $this->resetTotaux();
+}
+private function imprimerRecu(string $numeroLot): void
+{
+    $paiements = Paiement::with([
+        'inscription.eleve',
+        'inscription.classe',
+        'inscription.annee',
+        'frais',
+    ])
+    ->where('numero_recu', $numeroLot)
+    ->get();
+
+    if ($paiements->isEmpty()) {
+        throw new \RuntimeException(
+            "Aucun paiement trouvé pour {$numeroLot}"
+        );
+    }
+
+    $paiement = $paiements->first();
+
+    $inscription = $paiement->inscription;
+
+    if (!$inscription) {
+        throw new \RuntimeException(
+            'Inscription introuvable.'
+        );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Détails du paiement
+    |--------------------------------------------------------------------------
+    */
+
+    $details = $paiements->map(function ($paiement) {
+
+        return [
+            'nom' =>
+                $paiement->frais->nom
+                ?? $paiement->frais->description
+                ?? 'Frais',
+
+            'montant' =>
+                $paiement->montant_verse ?? 0,
+        ];
+
+    })->toArray();
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Total de CE reçu
+    |--------------------------------------------------------------------------
+    */
+
+    $totalRecu = $paiements->sum(
+        'montant_verse'
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Total payé par l'élève
+    |--------------------------------------------------------------------------
+    */
+
+    $totalPaye = Paiement::where(
+        'inscription_id',
+        $inscription->id
+    )->sum('montant_verse');
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Total des frais
+    |--------------------------------------------------------------------------
+    */
+
+    $totalFrais = $inscription->frais->sum(
+        function ($frais) {
+            return $frais->pivot->montant_frais ?? 0;
+        }
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Reste
+    |--------------------------------------------------------------------------
+    */
+
+    $reste = max(
+        0,
+        $totalFrais - $totalPaye
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Statut
+    |--------------------------------------------------------------------------
+    */
+
+    if ($reste <= 0) {
+
+        $statut = 'SOLDE';
+
+    } elseif ($totalPaye > 0) {
+
+        $statut = 'PARTIEL';
+
+    } else {
+
+        $statut = 'NON PAYE';
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Génération du ticket
+    |--------------------------------------------------------------------------
+    */
+
+    $serviceRecu = new RecuThermiqueService();
+
+    $ticket = $serviceRecu->generate([
+
+        'numero' => $numeroLot,
+
+        'date' => $paiement->date_paiement
+            ? \Carbon\Carbon::parse(
+                $paiement->date_paiement
+            )->format('d/m/Y')
+            : now()->format('d/m/Y'),
+
+        'eleve' =>
+            $inscription->eleve
+            ? $inscription->eleve->nom .
+              ' ' .
+              $inscription->eleve->prenom
+            : '-',
+
+        'matricule' =>
+            $inscription->eleve->matricule ?? '-',
+
+        'classe' =>
+            $inscription->classe->nom ?? '-',
+
+        'annee' =>
+            $inscription->annee->nom ?? '-',
+
+        'details' =>
+            $details,
+
+        'total_recu' =>
+            $totalRecu,
+
+        'total_paye' =>
+            $totalPaye,
+
+        'total_frais' =>
+            $totalFrais,
+
+        'reste' =>
+            $reste,
+
+        'statut' =>
+            $statut,
+
+        'mode_paiement' =>
+            $paiement->mode_paiement ?? '-',
+    ]);
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Envoi à la Xprinter
+    |--------------------------------------------------------------------------
+    */
+
+    $printer = new ThermalPrinterService(
+        'Xprinter_POS58'
+    );
+
+    $result = $printer->print($ticket);
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Journalisation
+    |--------------------------------------------------------------------------
+    */
+
+    Log::info(
+        'Reçu imprimé automatiquement',
+        [
+            'numero_recu' => $numeroLot,
+            'imprimante' => 'Xprinter_POS58',
+            'resultat' => $result,
+        ]
+    );
+}
     public function render()
     {
         return view('livewire.paiements.paiement-multiple', [

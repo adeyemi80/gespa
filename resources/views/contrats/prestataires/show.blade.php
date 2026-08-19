@@ -64,7 +64,8 @@
         <div class="btn-group mb-3 ms-2" role="group">
             @if ($contrat->etat === 'brouillon')
                 <form action="{{ route('contrats-prestataires.valider', $contrat) }}" method="POST" class="d-inline">
-                    @csrf
+                   @csrf
+                   @method('PATCH')
                     <button type="submit" class="btn btn-success" onclick="return confirm('Valider ce contrat ?')">
                         <i class="bi bi-check-circle me-2"></i>Valider
                     </button>
