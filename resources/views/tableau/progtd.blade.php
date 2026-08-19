@@ -100,8 +100,7 @@
                 $cards3 = [
                     ['route'=>'tests.index','color'=>'success','icon'=>'wallet2','title'=>'BANQUE DES EPREUVES'],
                      ['route'=>'paiements.create-up','color'=>'success','icon'=>'wallet2','title'=>'Enregistrer paiements sélectif'],
-                    ['route'=>'depenses.create','color'=>'danger','icon'=>'cash-stack','title'=>'Enregistrer une dépense'],
-                    ['route'=>'budgets.create','color'=>'secondary','icon'=>'pie-chart-fill','title'=>'Créer un budget'],
+                    
                    
                 ];
             @endphp

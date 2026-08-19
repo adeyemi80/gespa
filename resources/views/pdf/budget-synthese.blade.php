@@ -28,10 +28,13 @@
     </style>
 </head>
 <body>
-
-    <h1>Budget global</h1>
+<div class="logo">
+    <img src="data:image/png;base64,{{ base64_encode(file_get_contents(public_path('images/entete_lg.png'))) }}"
+         alt="Logo" style="width:710px; height:160px;">
+</div>
+    <h1 style="font-size: 32px; text-align: center;">Budget Global Exercice {{ $anneeLibelle }}</h1>
     <p class="sous-titre">
-        Année scolaire : {{ $anneeLibelle }} — Généré le {{ now()->format('d/m/Y à H:i') }}
+          Généré le {{ now()->format('d/m/Y à H:i') }}
     </p>
 
     {{-- RECETTES --}}

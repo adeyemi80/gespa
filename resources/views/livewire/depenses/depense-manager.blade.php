@@ -193,6 +193,17 @@
                                     @error('annee_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                 </div>
 
+                                <div class="col-mb-6">
+    <label class="form-label">Cycle</label>
+    <select wire:model="cycle_id" class="form-select @error('cycle_id') is-invalid @enderror">
+        <option value="">-- Aucun --</option>
+        @foreach ($this->cycles as $cycle)
+            <option value="{{ $cycle->id }}">{{ $cycle->nom }}</option>
+        @endforeach
+    </select>
+    @error('cycle_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+</div>
+
                                 <div class="col-md-6">
                                     <label class="form-label">Catégorie <span class="text-danger">*</span></label>
                                     <select wire:model.live="categorie_id" class="form-select @error('categorie_id') is-invalid @enderror">

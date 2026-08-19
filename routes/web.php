@@ -1,4 +1,5 @@
 <?php
+use App\Http\Controllers\ContratPrestataireController;
 use App\Http\Controllers\PieceJustificativeController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
@@ -100,6 +101,7 @@ use App\Http\Controllers\TdSeanceController;
 use App\Http\Controllers\TdTarifController;
 use App\Http\Controllers\TdPresenceController;
 use App\Http\Controllers\TdPaiementController;
+use App\Http\Controllers\EtablissementController;
 
 
 
@@ -433,12 +435,10 @@ Route::resource('transactions', App\Http\Controllers\TransactionController::clas
 Route::resource('comptes', App\Http\Controllers\CompteController::class);
 Route::get('/budgets', [BudgetController::class, 'index'])->name('budgets.index');
 Route::get('/budgets/recettes', [BudgetController::class, 'recettes'])->name('budgets.recettes');
-Route::get('/budgets/depenses', [BudgetController::class, 'depenses'])->name('budgets.depenses');
+Route::get('/budgets/depenses', [BudgetController::class, 'depenses']) ->middleware(['auth', 'role:admin,comptable'])->name('budgets.depenses');
 Route::get('/budgets/synthese', [BudgetController::class, 'synthese'])->name('budgets.synthese');
 Route::get('/budget-synthese/export-pdf', [BudgetSyntheseExportController::class, 'pdf'])->name('budget-synthese.export-pdf');
 // Passage des élèves
-// routes/web.php
-// routes/web.php
 
 
 Route::get('/annulation-passage', function () {return view('livewire.annulation-passage');})->middleware('auth')->name('annulation.passage');
@@ -536,9 +536,61 @@ Route::resource('td-paiements', App\Http\Controllers\TdPaiementController::class
 Route::get('/td/recap/pdf', [TdRecapPdfController::class, 'export'])->name('td.recap.pdf');
 Route::get('/td', [TdController::class, 'index'])->name('td.index');
 Route::get('/td/dirige', [TdController::class, 'dirige'])->name('td.dirige');
+// ✅ Routes simples pour les contrats prestataires
+// ============================================
+// 🔴 SUPPRIMEZ TOUTE LIGNE AVEC :
+// Route::resource('contrats-prestataires'...)
+// ============================================
 
+// ✅ REMPLACEZ PAR CES ROUTES EXPLICITES :
+Route::resource('etablissements', EtablissementController::class);
+// Index - Lister tous les contrats
+Route::get('contrats-prestataires', [ContratPrestataireController::class, 'index'])
+    ->name('contrats-prestataires.index');
 
+// Create - Formulaire de création
+Route::get('contrats-prestataires/create', [ContratPrestataireController::class, 'create'])
+    ->name('contrats-prestataires.create');
 
+// Store - Enregistrer
+Route::post('contrats-prestataires', [ContratPrestataireController::class, 'store'])
+    ->name('contrats-prestataires.store');
+
+// Show - Afficher un contrat (DOIT ÊTRE APRÈS /create pour éviter confusion)
+Route::get('contrats-prestataires/{contrat}', [ContratPrestataireController::class, 'show'])
+    ->name('contrats-prestataires.show');
+
+// Edit - Formulaire de modification
+Route::get('contrats-prestataires/{contrat}/edit', [ContratPrestataireController::class, 'edit'])
+    ->name('contrats-prestataires.edit');
+
+// Update - Mettre à jour
+Route::put('contrats-prestataires/{contrat}', [ContratPrestataireController::class, 'update'])
+    ->name('contrats-prestataires.update');
+
+// Delete - Supprimer
+Route::delete('contrats-prestataires/{contrat}', [ContratPrestataireController::class, 'destroy'])
+    ->name('contrats-prestataires.destroy');
+
+// Preview - Aperçu avant impression
+Route::get('contrats-prestataires/{contrat}/preview', [ContratPrestataireController::class, 'preview'])
+    ->name('contrats-prestataires.preview');
+
+// PDF - Exporter en PDF
+Route::get('contrats-prestataires/{contrat}/pdf', [ContratPrestataireController::class, 'pdf'])
+    ->name('contrats-prestataires.pdf');
+
+// Valider le contrat
+Route::patch('contrats-prestataires/{contrat}/valider', [ContratPrestataireController::class, 'valider'])
+    ->name('contrats-prestataires.valider');
+
+// Marquer comme terminé
+Route::patch('contrats-prestataires/{contrat}/terminer', [ContratPrestataireController::class, 'terminer'])
+    ->name('contrats-prestataires.terminer');
+
+// Annuler le contrat
+Route::patch('contrats-prestataires/{contrat}/annuler', [ContratPrestataireController::class, 'annuler'])
+    ->name('contrats-prestataires.annuler');
 ////////////////////////////// FIN ROUTES STATIQUES/////////////////////////////////////////
 
 ///////////////////////////////// ROUTES DYNAMIQUES //////////////////////////////////////////

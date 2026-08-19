@@ -163,7 +163,7 @@
         <div class="card-footer text-end">
 
             <a
-                href="{{ route('oloye.edit',$oloye) }}"
+                href="{{ route('oloyes.edit',$oloye) }}"
                 class="btn btn-warning">
 
                 <i class="bi bi-pencil-square"></i>
@@ -173,7 +173,7 @@
             </a>
 
             <form
-                action="{{ route('oloye.destroy',$oloye) }}"
+                action="{{ route('oloyes.destroy',$oloye) }}"
                 method="POST"
                 class="d-inline">
 

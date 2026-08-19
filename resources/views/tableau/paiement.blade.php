@@ -149,8 +149,10 @@
             @php
                 $cards2 = [
                     ['route'=>'recettes.index','color'=>'info','icon'=>'journal-bookmark-fill','title'=>'RECETTES'],
-                     
-                    
+                    ['route'=>'contrats-prestataires.create','color'=>'info','icon'=>'journal-bookmark-fill','title'=>'ENREGISTRER UN CONTRAT DE PRESTATION'],
+                    ['route'=>'contrats-prestataires.index','color'=>'info','icon'=>'journal-bookmark-fill','title'=>' CONTRATS DE PRESTATIONS']
+
+
                     ];
             @endphp
 

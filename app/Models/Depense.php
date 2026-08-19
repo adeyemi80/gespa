@@ -27,6 +27,7 @@ class Depense extends Model
         'cree_par',
         'valide_par',
         'valide_le',
+        'cycle_id',
     ];
 
     protected $casts = [
@@ -69,4 +70,8 @@ class Depense extends Model
     {
         return $query->where('annee_id', $anneeId);
     }
+    public function cycle(): BelongsTo
+{
+    return $this->belongsTo(Cycle::class);
+}
 }

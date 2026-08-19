@@ -1,6 +1,8 @@
 @extends('tableau.neutre')
 
 @section('content')
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+
 <button 
     onclick="if (window.history.length > 1) { history.back(); } else { window.location.href='{{ route('tableau.accueil') }}'; }" 
     class="btn btn-secondary">
@@ -63,14 +65,24 @@
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label for="password" class="form-label fw-semibold">Mot de Passe</label>
-                        <input id="password" type="password" name="password"
-                               class="form-control form-control-lg rounded-3 shadow-sm" required autocomplete="new-password">
+                        <div class="password-wrapper">
+                            <input id="password" type="password" name="password"
+                                   class="form-control form-control-lg rounded-3 shadow-sm password-input" required autocomplete="new-password">
+                            <span class="password-toggle" onclick="togglePassword('password')">
+                                <i class="bi bi-eye"></i>
+                            </span>
+                        </div>
                     </div>
 
                     <div class="col-md-6 mb-3">
                         <label for="password_confirmation" class="form-label fw-semibold">Confirmer le Mot de Passe</label>
-                        <input id="password_confirmation" type="password" name="password_confirmation"
-                               class="form-control form-control-lg rounded-3 shadow-sm" required autocomplete="new-password">
+                        <div class="password-wrapper">
+                            <input id="password_confirmation" type="password" name="password_confirmation"
+                                   class="form-control form-control-lg rounded-3 shadow-sm password-input" required autocomplete="new-password">
+                            <span class="password-toggle" onclick="togglePassword('password_confirmation')">
+                                <i class="bi bi-eye"></i>
+                            </span>
+                        </div>
                     </div>
                 </div>
 
@@ -126,5 +138,54 @@
     .btn-primary:hover {
         background: linear-gradient(90deg, #0056b3, #004085);
     }
+
+    /* Styles pour le toggle du mot de passe */
+    .password-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+
+    .password-input {
+        padding-right: 45px;
+    }
+
+    .password-toggle {
+        position: absolute;
+        right: 15px;
+        cursor: pointer;
+        color: #6c757d;
+        font-size: 1.2rem;
+        transition: all 0.3s ease;
+        user-select: none;
+    }
+
+    .password-toggle:hover {
+        color: #0d6efd;
+        transform: scale(1.1);
+    }
+
+    .password-toggle i {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
 </style>
+
+<script>
+    function togglePassword(inputId) {
+        const input = document.getElementById(inputId);
+        const icon = event.target.closest('.password-toggle').querySelector('i');
+        
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.classList.remove('bi-eye');
+            icon.classList.add('bi-eye-slash');
+        } else {
+            input.type = 'password';
+            icon.classList.remove('bi-eye-slash');
+            icon.classList.add('bi-eye');
+        }
+    }
+</script>
 @endsection

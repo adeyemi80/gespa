@@ -84,6 +84,7 @@
                     <tr class="table-light">
                         <th class="ps-4 py-3 text-muted small text-uppercase" style="letter-spacing:.03em;">Code</th>
                         <th class="py-3 text-muted small text-uppercase" style="letter-spacing:.03em;">Catégorie</th>
+                        <th class="py-3 text-muted small text-uppercase" style="letter-spacing:.03em;">Cycle</th>
                         <th class="py-3 text-end text-muted small text-uppercase" style="letter-spacing:.03em;">Prévu</th>
                         <th class="py-3 text-end text-muted small text-uppercase" style="letter-spacing:.03em;">Réalisé</th>
                         <th class="py-3 text-end text-muted small text-uppercase" style="letter-spacing:.03em;">Écart</th>
@@ -97,6 +98,18 @@
                                 <span class="badge bg-primary-subtle text-primary-emphasis fw-semibold">{{ $ligne['code'] }}</span>
                             </td>
                             <td class="fw-medium">{{ $ligne['nom'] }}</td>
+                            <td class="fw-medium">
+    {{ $ligne['nom'] }}
+    <div class="mt-1">
+        @foreach ($ligne['par_cycle'] as $nomCycle => $montant)
+            @if ($montant > 0)
+                <span class="badge bg-light text-dark border me-1" style="font-size: .68rem;">
+                    {{ $nomCycle }} : {{ number_format($montant, 0, ',', ' ') }}
+                </span>
+            @endif
+        @endforeach
+    </div>
+</td>
                             <td class="text-end">{{ number_format($ligne['prevu'], 0, ',', ' ') }}</td>
                             <td class="text-end">{{ number_format($ligne['realise'], 0, ',', ' ') }}</td>
                             <td class="text-end fw-semibold {{ $ligne['ecart'] >= 0 ? 'text-success' : 'text-danger' }}">
@@ -136,7 +149,21 @@
             </table>
         </div>
     </div>
-
+{{-- Répartition des recettes par cycle --}}
+<div class="row g-3 mb-4">
+    @foreach ($cycles as $cycle)
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <p class="text-uppercase text-muted small mb-1 fw-semibold">{{ $cycle->nom }}</p>
+                    <p class="h5 fw-bold mb-0 text-success">
+                        {{ number_format($totauxRecettesParCycle[$cycle->nom] ?? 0, 0, ',', ' ') }} FCFA
+                    </p>
+                </div>
+            </div>
+        </div>
+    @endforeach
+</div>
     {{-- ============ DEPENSES ============ --}}
     <div class="d-flex align-items-center gap-2 mb-3">
         <span class="badge rounded-pill bg-danger-subtle text-danger-emphasis px-3 py-2">
@@ -190,6 +217,7 @@
                     <tr class="table-light">
                         <th class="ps-4 py-3 text-muted small text-uppercase" style="letter-spacing:.03em;">Code</th>
                         <th class="py-3 text-muted small text-uppercase" style="letter-spacing:.03em;">Catégorie</th>
+                         <th class="py-3 text-muted small text-uppercase" style="letter-spacing:.03em;">Cycle</th>
                         <th class="py-3 text-end text-muted small text-uppercase" style="letter-spacing:.03em;">Alloué</th>
                         <th class="py-3 text-end text-muted small text-uppercase" style="letter-spacing:.03em;">Utilisé</th>
                         <th class="py-3 text-end text-muted small text-uppercase" style="letter-spacing:.03em;">Restant</th>
@@ -203,6 +231,18 @@
                                 <span class="badge bg-secondary-subtle text-secondary-emphasis fw-semibold">{{ $ligne['code'] }}</span>
                             </td>
                             <td class="fw-medium">{{ $ligne['nom'] }}</td>
+                            <td class="fw-medium">
+    {{ $ligne['nom'] }}
+    <div class="mt-1">
+        @foreach ($ligne['par_cycle'] as $nomCycle => $montant)
+            @if ($montant > 0)
+                <span class="badge bg-light text-dark border me-1" style="font-size: .68rem;">
+                    {{ $nomCycle }} : {{ number_format($montant, 0, ',', ' ') }}
+                </span>
+            @endif
+        @endforeach
+    </div>
+</td>
                             <td class="text-end">{{ number_format($ligne['alloue'], 0, ',', ' ') }}</td>
                             <td class="text-end">{{ number_format($ligne['utilise'], 0, ',', ' ') }}</td>
                             <td class="text-end">{{ number_format($ligne['restant'], 0, ',', ' ') }}</td>
@@ -238,7 +278,21 @@
             </table>
         </div>
     </div>
-
+{{-- Répartition des recettes par cycle --}}
+<div class="row g-3 mb-4">
+    @foreach ($cycles as $cycle)
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <p class="text-uppercase text-muted small mb-1 fw-semibold">{{ $cycle->nom }}</p>
+                    <p class="h5 fw-bold mb-0 text-success">
+                        {{ number_format($totauxDepensesParCycle[$cycle->nom] ?? 0, 0, ',', ' ') }} FCFA
+                    </p>
+                </div>
+            </div>
+        </div>
+    @endforeach
+</div>
     {{-- ============ SOLDE ============ --}}
     <div class="card border-0 shadow" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
         <div class="card-body p-4">

@@ -50,6 +50,7 @@ class DepenseManager extends Component
     public string $mode_paiement = 'especes';
     public string $reference_paiement = '';
     public string $statut = 'brouillon';
+    public ?int $cycle_id = null;
 
     // Pièces justificatives
     public array $nouvellesPieces = [];
@@ -127,7 +128,10 @@ class DepenseManager extends Component
         // Réinitialiser le type sélectionné si la catégorie change, car les types dépendent de la catégorie
         $this->type_depense_id = '';
     }
-
+    public function getCyclesProperty()
+{
+    return \App\Models\Cycle::orderBy('ordre')->get();
+}
     public function getTypesDisponiblesProperty()
     {
         if (! $this->categorie_id) {
@@ -223,6 +227,7 @@ class DepenseManager extends Component
                     'beneficiaire' => $this->beneficiaire ?: null,
                     'mode_paiement' => $this->mode_paiement,
                     'reference_paiement' => $this->reference_paiement ?: null,
+                    'cycle_id' => $this->cycle_id,
                 ]);
             } else {
                 $depense = Depense::create([
@@ -236,6 +241,7 @@ class DepenseManager extends Component
                     'beneficiaire' => $this->beneficiaire ?: null,
                     'mode_paiement' => $this->mode_paiement,
                     'reference_paiement' => $this->reference_paiement ?: null,
+                    'cycle_id' => $this->cycle_id,
                     'statut' => 'brouillon',
                     'cree_par' => Auth::id(),
                 ]);

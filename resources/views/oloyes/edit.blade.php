@@ -40,7 +40,7 @@
                 </div>
             @endif
 
-            <form action="{{ route('oloye.update', $oloye) }}" method="POST">
+            <form action="{{ route('oloyes.update', $oloye) }}" method="POST">
 
                 @csrf
                 @method('PUT')

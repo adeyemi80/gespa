@@ -17,7 +17,7 @@
 
             @php
                 $cards1 = [
-                    ['route'=>'investisseurs.create','color'=>'primary','icon'=>'people-fill','title'=>'CREER UN INVESTISSEUR '],
+                    ['route'=>'investisseurs.create','color'=>'primary','icon'=>'people-fill','title'=>'ENREGISTRER UN INVESTISSEUR '],
                     ['route'=>'investisseurs.index','color'=>'primary','icon'=>'person-lines-fill','title'=>'LES INVESTISSEURS'],
                     ['route'=>'investissements.index','color'=>'primary','icon'=>'journal-text','title'=>'LES INVESTISSEMENTS'],
                     ['route'=>'benefices.index','color'=>'primary','icon'=>'clipboard-check','title'=>'BENEFICES'],
@@ -45,7 +45,7 @@
                 $cards2 = [
                     ['route'=>'paiements-benefices.create','color'=>'info','icon'=>'journal-bookmark-fill','title'=>'CREER UN PAIEMENT DES BENEFICES'],
                     ['route'=>'paiements-benefices.index','color'=>'info','icon'=>'file-earmark-arrow-up','title'=>'PAIEMENTS DES BENEFICES'],
-                    ['route'=>'retraits-capital.create','color'=>'info','icon'=>'file-text','title'=>'CREER UN RETRAIT DE CAPITAL'],
+                    ['route'=>'retraits-capital.create','color'=>'info','icon'=>'file-text','title'=>'ENREGISTRER UN RETRAIT DE CAPITAL'],
                     ['route'=>'retraits-capital.index','color'=>'info','icon'=>'files','title'=>'LES CAPITAUX RETIRES'],
                 ];
             @endphp
