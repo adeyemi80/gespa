@@ -126,9 +126,9 @@
                 $cards3 = [
                     ['route'=>'paiements.create','color'=>'success','icon'=>'wallet2','title'=>'PAIEMENT'],
                      ['route'=>'paiements.create-up','color'=>'success','icon'=>'wallet2','title'=>'PAIEMENTS'],
-                    ['route'=>'depenses.create','color'=>'danger','icon'=>'cash-stack','title'=>'ENREGISTRER DEPENSES'],
-                    ['route'=>'budgets.create','color'=>'secondary','icon'=>'pie-chart-fill','title'=>'CREER UN BUDGET'],
-                   
+                    
+
+                     
                 ];
             @endphp
 

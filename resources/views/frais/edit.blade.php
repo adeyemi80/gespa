@@ -30,7 +30,39 @@
 
                 {{-- DONNEES PRINCIPALES --}}
                 <div class="row mb-3">
+                     {{-- CategorieRecette --}}
+<div class="mb-3">
+    <label for="categorie_recette_id" class="form-label">
+        Catégorie de recette <span class="text-danger">*</span>
+    </label>
 
+    <select
+        name="categorie_recette_id"
+        id="categorie_recette_id"
+        class="form-select @error('categorie_recette_id') is-invalid @enderror"
+        required
+    >
+        <option value="">-- Sélectionner une catégorie --</option>
+
+        @foreach($categoriesRecettes as $categorie)
+            <option
+                value="{{ $categorie->id }}"
+                {{ old(
+                    'categorie_recette_id',
+                    $frais->categorie_recette_id
+                ) == $categorie->id ? 'selected' : '' }}
+            >
+                {{ $categorie->code }} - {{ $categorie->nom }}
+            </option>
+        @endforeach
+    </select>
+
+    @error('categorie_recette_id')
+        <div class="invalid-feedback">
+            {{ $message }}
+        </div>
+    @enderror
+</div>
                     {{-- NOM --}}
                     <div class="mb-3">
     <label class="fw-bold small">Nom du frais</label>

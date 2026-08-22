@@ -43,7 +43,7 @@ class RecuThermiqueService
 {
     $text = '';
 
-    $text .= $this->center('COLLEGE LE GLORIEUX') . "\n";
+    $text .= $this->center('COMPLEXE SCOLAIRE LE GLORIEUX') . "\n";
     $text .= $this->center('GESPA') . "\n";
     $text .= $this->center('RECU DE PAIEMENT') . "\n";
 
@@ -117,7 +117,7 @@ class RecuThermiqueService
     ) . "\n";
 
     $text .= $this->center(
-        'COLLEGE LE GLORIEUX'
+        'COMPLEXE SCOLAIRE LE GLORIEUX'
     ) . "\n";
 
     $text .= "\n\n\n";

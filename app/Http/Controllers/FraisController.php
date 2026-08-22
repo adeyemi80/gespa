@@ -9,6 +9,7 @@ use App\Models\Eleve;
 use App\Models\Echeance;
 use App\Models\Classe;
 use App\Models\Cycle;
+use App\Models\CategorieRecette;
 use App\Models\Annee;
 use App\Models\Inscription;
 use App\Models\InscriptionFrais;
@@ -27,10 +28,11 @@ class FraisController extends Controller
     $classes = Classe::all();
 
     $query = Frais::with([
-        'echeances',
-        'anneeClasseFrais.classe',
-        'anneeClasseFrais.annee',
-    ]);
+    'categorieRecette',
+    'echeances',
+    'anneeClasseFrais.classe',
+    'anneeClasseFrais.annee',
+]);
 
     // Filtre par classe
     if ($request->filled('classe_id')) {
@@ -62,17 +64,22 @@ class FraisController extends Controller
      * Formulaire création
      */
     public function create()
-    {
-        $classes = Classe::orderByNiveau()->get();
-        $annees  = Annee::all();
-        $cycles  = Cycle::all();
+{
+    $classes = Classe::orderByNiveau()->get();
+    $annees = Annee::orderByDesc('id')->get();
+    $cycles = Cycle::all();
 
-        return view('frais.create', compact(
-            'classes',
-            'annees',
-            'cycles'
-        ));
-    }
+    $categoriesRecettes = CategorieRecette::where('actif', true)
+        ->orderBy('nom')
+        ->get();
+
+    return view('frais.create', compact(
+        'classes',
+        'annees',
+        'cycles',
+        'categoriesRecettes'
+    ));
+}
 
     /**
      * Enregistrement
@@ -80,36 +87,41 @@ class FraisController extends Controller
    public function store(Request $request)
 {
     $request->validate([
-        'nom'                     => 'required|string|max:255',
-        'description'             => 'nullable|string',
-        'montant'                 => 'required|numeric|min:0',
-        'classe_id'               => 'required|exists:classes,id',
-        'annee_id'                => 'required|exists:annees,id',
+        'categorie_recette_id' => 'required|exists:categories_recettes,id',
+        'nom'                 => 'required|string|max:255',
+        'description'         => 'nullable|string',
+        'montant'             => 'required|numeric|min:0',
+        'classe_id'           => 'required|exists:classes,id',
+        'annee_id'            => 'required|exists:annees,id',
+
         'echeances'               => 'required|array|min:1',
         'echeances.*.libelle'     => 'required|string|max:255',
         'echeances.*.montant'     => 'required|numeric|min:0',
         'echeances.*.date_limite' => 'required|date',
     ]);
 
-    // ✅ Unicité : même nom + même classe + même année
+    // Vérification du doublon pour la même classe et la même année
     $doublon = Frais::where('nom', $request->nom)
         ->whereHas('anneeClasseFrais', function ($q) use ($request) {
             $q->where('classe_id', $request->classe_id)
-              ->where('annee_id',  $request->annee_id);
+              ->where('annee_id', $request->annee_id);
         })
         ->exists();
 
     if ($doublon) {
-        return back()->withInput()->withErrors([
-            'nom' => "Le frais « {$request->nom} » existe déjà pour cette classe et cette année.",
-        ]);
+        return back()
+            ->withInput()
+            ->withErrors([
+                'nom' => "Le frais « {$request->nom} » existe déjà pour cette classe et cette année.",
+            ]);
     }
 
     DB::transaction(function () use ($request) {
 
         $frais = Frais::create([
-            'nom'         => $request->nom,
-            'description' => $request->description,
+            'categorie_recette_id' => $request->categorie_recette_id,
+            'nom'                 => $request->nom,
+            'description'         => $request->description,
         ]);
 
         AnneeClasseFrais::updateOrCreate(
@@ -124,52 +136,57 @@ class FraisController extends Controller
         );
 
         $this->saveEcheances($request, $frais);
+
         $this->saveInscriptionFrais($request, $frais);
     });
 
-    return redirect()->route('frais.create')
+    return redirect()
+        ->route('frais.create')
         ->with('success', '✅ Frais créé avec succès.');
 }
 
 public function update(Request $request, Frais $frais)
 {
     $request->validate([
-        'nom'                     => 'required|string|max:255',
-        'description'             => 'nullable|string',
-        'montant'                 => 'required|numeric|min:0',
-        'classe_id'               => 'required|exists:classes,id',
-        'annee_id'                => 'required|exists:annees,id',
+        'categorie_recette_id' => 'required|exists:categories_recettes,id',
+        'nom'                 => 'required|string|max:255',
+        'description'         => 'nullable|string',
+        'montant'             => 'required|numeric|min:0',
+        'classe_id'           => 'required|exists:classes,id',
+        'annee_id'            => 'required|exists:annees,id',
+
         'echeances'               => 'required|array|min:1',
         'echeances.*.libelle'     => 'required|string|max:255',
         'echeances.*.montant'     => 'required|numeric|min:0',
         'echeances.*.date_limite' => 'required|date',
     ]);
 
-    // ✅ Vérification de doublon : on ignore explicitement
-    // les pivots appartenant déjà à CE frais (peu importe leur classe/année actuelle)
     $doublon = Frais::where('nom', $request->nom)
         ->where('id', '!=', $frais->id)
         ->whereHas('anneeClasseFrais', function ($q) use ($request) {
             $q->where('classe_id', $request->classe_id)
-              ->where('annee_id',  $request->annee_id);
+              ->where('annee_id', $request->annee_id);
         })
         ->exists();
 
     if ($doublon) {
-        return back()->withInput()->withErrors([
-            'nom' => "Le frais « {$request->nom} » existe déjà pour cette classe et cette année.",
-        ]);
+        return back()
+            ->withInput()
+            ->withErrors([
+                'nom' => "Le frais « {$request->nom} » existe déjà pour cette classe et cette année.",
+            ]);
     }
 
     DB::transaction(function () use ($request, $frais) {
 
         $frais->update([
-            'nom'         => $request->nom,
-            'description' => $request->description,
+            'categorie_recette_id' => $request->categorie_recette_id,
+            'nom'                 => $request->nom,
+            'description'         => $request->description,
         ]);
 
-        // ✅ Supprime l'ancien pivot s'il ne correspond plus
-        // à la nouvelle classe/année (évite les orphelins)
+        // Supprimer l'ancien rattachement classe/année
+        // si la classe ou l'année change
         AnneeClasseFrais::where('frais_id', $frais->id)
             ->where(function ($q) use ($request) {
                 $q->where('classe_id', '!=', $request->classe_id)
@@ -183,14 +200,18 @@ public function update(Request $request, Frais $frais)
                 'classe_id' => $request->classe_id,
                 'frais_id'  => $frais->id,
             ],
-            ['montant' => $request->montant]
+            [
+                'montant' => $request->montant,
+            ]
         );
 
         $this->saveEcheances($request, $frais, true);
+
         $this->saveInscriptionFrais($request, $frais);
     });
 
-    return redirect()->route('frais.index')
+    return redirect()
+        ->route('frais.index')
         ->with('success', '✅ Frais mis à jour avec succès.');
 }
     /**
@@ -376,21 +397,27 @@ public function update(Request $request, Frais $frais)
      * Édition
      */
     public function edit(Frais $frais)
-    {
-        $frais->load([
-            'echeances',
-            'anneeClasseFrais'
-        ]);
+{
+    $frais->load([
+        'echeances',
+        'anneeClasseFrais',
+        'categorieRecette',
+    ]);
 
-        $classes = Classe::all();
-        $annees  = Annee::all();
+    $classes = Classe::orderByNiveau()->get();
+    $annees = Annee::orderByDesc('id')->get();
 
-        return view('frais.edit', compact(
-            'frais',
-            'classes',
-            'annees'
-        ));
-    }
+    $categoriesRecettes = CategorieRecette::where('actif', true)
+        ->orderBy('nom')
+        ->get();
+
+    return view('frais.edit', compact(
+        'frais',
+        'classes',
+        'annees',
+        'categoriesRecettes'
+    ));
+}
 
     /**
      * Suppression

@@ -58,6 +58,10 @@ public function paiement()
 {
     return view('paiements.paiement');
 }
+public function achat()
+{
+    return view('paiements.achat');
+}
 public function fraisFilter()
 {
     return view('paiements.fraisFilter');

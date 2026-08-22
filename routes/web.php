@@ -290,6 +290,7 @@ Route::resource('inscription-frais', InscriptionFraisController::class);//->exce
 // Page de paiement multiple (Livewire)
 Route::get('/paiements/fraisFilter', [PaiementController::class, 'fraisFilter'])->name('paiements.fraisFilter');
 Route::get('/paiements/paiement', [PaiementController::class, 'paiement'])->name('paiements.paiement');
+Route::get('/paiements/achat', [PaiementController::class, 'achat'])->name('paiements.achat');
 //Route::get('/paiements/multiple', Paiements\PaiementMultiple::class)->name('paiements.multiple');
 // Reçu / ticket d'impression
 Route::get('/paiements/ticket/{numeroLot}', [RecuPaiementController::class, 'ticket'])->name('paiements.ticket');

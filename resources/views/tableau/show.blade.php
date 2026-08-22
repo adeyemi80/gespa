@@ -19,7 +19,8 @@
             @php
                 $cards3 = [
                     ['route'=>'paiements.paiement','color'=>'success','icon'=>'wallet2','title'=>' ENREGISTRER PAIEMENTS'],
-                     
+                     ['route'=>'paiements.achat','color'=>'success','icon'=>'wallet2','title'=>' ENREGISTRER PAIEMENTS ACHAT'],
+                    
                    
                 ];
             @endphp

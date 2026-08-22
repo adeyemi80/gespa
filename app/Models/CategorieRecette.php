@@ -17,6 +17,7 @@ class CategorieRecette extends Model
         'nom',
         'description',
         'actif',
+        'est_achat',
     ];
 
     protected $casts = [
@@ -32,4 +33,11 @@ class CategorieRecette extends Model
     {
         return $query->where('actif', true);
     }
+    public function frais()
+{
+    return $this->hasMany(
+        Frais::class,
+        'categorie_recette_id'
+    );
+}
 }
