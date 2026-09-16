@@ -1,532 +1,579 @@
 <div>
+    {{-- Messages --}}
+    @if (session()->has('success'))
+        <div class="alert alert-success alert-dismissible fade show">
+            <i class="bi bi-check-circle me-2"></i>
+            {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    @if (session()->has('error'))
+        <div class="alert alert-danger alert-dismissible fade show">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    @if ($errors->any())
+        <div class="alert alert-danger">
+            <div class="fw-bold mb-2">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                Veuillez corriger les erreurs suivantes :
+            </div>
+
+            <ul class="mb-0">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
+    {{-- Message succès paiement --}}
+    @if ($successMessage)
+        <div class="alert alert-success alert-dismissible fade show">
+            <div class="d-flex align-items-center">
+                <i class="bi bi-check-circle-fill fs-4 me-3"></i>
+
+                <div>
+                    <strong>Paiement enregistré avec succès !</strong>
+
+                    @if ($numeroRecuGenere)
+                        <div>
+                            N° reçu :
+                            <strong>{{ $numeroRecuGenere }}</strong>
+                        </div>
+                    @endif
+                </div>
+            </div>
+
+            <button
+                type="button"
+                class="btn-close"
+                wire:click="$set('successMessage', null)">
+            </button>
+        </div>
+    @endif
+
 
     {{-- ========================================================= --}}
-    {{-- TITRE --}}
+    {{-- 1. SÉLECTION ANNÉE / CYCLE / CLASSE / TYPE ÉLÈVE --}}
     {{-- ========================================================= --}}
-
     <div class="card shadow-sm mb-4">
 
         <div class="card-header bg-primary text-white">
-
             <h5 class="mb-0">
-                <i class="bi bi-cart-check"></i>
-                Paiement Achat
+                <i class="bi bi-person-check me-2"></i>
+                Sélection de l'élève
             </h5>
-
         </div>
 
         <div class="card-body">
 
-            {{-- ================================================= --}}
-            {{-- IDENTIFICATION ACHETEUR --}}
-            {{-- ================================================= --}}
-
-            <h6 class="fw-bold mb-3">
-                1. Identification de l'élève / acheteur
-            </h6>
-
             <div class="row g-3">
 
-                {{-- ANNÉE --}}
-
-                <div class="col-md-4">
-
-                    <label class="form-label">
+                {{-- Année --}}
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">
                         Année scolaire
                     </label>
 
                     <select
-                        wire:model.live="anneeId"
                         class="form-select"
+                        wire:model.live="anneeId"
                     >
-
                         <option value="">
-                            -- Année scolaire --
+                            -- Sélectionner l'année --
                         </option>
 
-                        @foreach($annees as $annee)
+                      @foreach ($annees as $annee)
+    <option value="{{ $annee['id'] }}">
+        {{ $annee['nom'] }}
 
-                            <option value="{{ $annee->id }}">
-                                {{ $annee->nom }}
-                            </option>
-
-                        @endforeach
-
+        @if ($annee['en_cours'])
+            (En cours)
+        @endif
+    </option>
+@endforeach
                     </select>
-
                 </div>
 
 
-                {{-- CYCLE --}}
-
-                <div class="col-md-4">
-
-                    <label class="form-label">
+                {{-- Cycle --}}
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">
                         Cycle
                     </label>
 
                     <select
-                        wire:model.live="cycleId"
                         class="form-select"
+                        wire:model.live="cycleId"
+                        @disabled(!$anneeId)
                     >
-
                         <option value="">
-                            -- Cycle --
+                            -- Sélectionner le cycle --
                         </option>
 
-                        @foreach($cycles as $cycle)
-
-                            <option value="{{ $cycle->id }}">
-                                {{ $cycle->nom }}
-                            </option>
-
-                        @endforeach
-
+                       @foreach ($cycles as $cycle)
+    <option value="{{ $cycle['id'] }}">
+        {{ $cycle['nom'] }}
+    </option>
+@endforeach
                     </select>
-
                 </div>
 
 
-                {{-- CLASSE --}}
-
-                <div class="col-md-4">
-
-                    <label class="form-label">
+                {{-- Classe --}}
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">
                         Classe
                     </label>
 
                     <select
-                        wire:model.live="classeId"
                         class="form-select"
+                        wire:model.live="classeId"
+                        @disabled(!$cycleId)
                     >
-
                         <option value="">
-                            -- Classe --
+                            -- Sélectionner la classe --
                         </option>
 
-                        @foreach($classes as $classe)
-
-    <option value="{{ $classe['id'] }}">
-        {{ $classe['nom'] }}
-    </option>
-
-@endforeach
-
+                        @foreach ($classes as $classe)
+                            <option value="{{ $classe['id'] }}">
+                                    {{ $classe['nom'] }}
+                                   </option>
+                        @endforeach
                     </select>
-
                 </div>
 
-            </div>
 
-
-            {{-- ================================================= --}}
-            {{-- ÉLÈVE INSCRIT --}}
-            {{-- ================================================= --}}
-
-            {{--<div class="row g-3 mt-1">
-
-                <div class="col-md-6">
-
-                    <label class="form-label">
-                        Élève inscrit
+                {{-- Type élève --}}
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">
+                        Type d'élève
                     </label>
 
                     <select
-                        wire:model.live="inscriptionId"
                         class="form-select"
+                        wire:model.live="typeEleve"
+                        @disabled(!$classeId)
                     >
-
                         <option value="">
-                            -- Aucun / saisie manuelle --
+                            -- Choisir --
                         </option>
 
-                        @foreach($inscriptions as $inscription)
+                        <option value="ancien">
+                            Ancien élève
+                        </option>
 
-    <option value="{{ $inscription['id'] }}">
-        {{ $inscription['nom'] }} 
-    </option>
-
-@endforeach
-
+                        <option value="nouveau">
+                            Nouveau élève
+                        </option>
                     </select>
-
-                    <small class="text-muted">
-                        Laissez « Aucun » si l'acheteur n'est pas inscrit.
-                    </small>
-
-                </div>
-
-            </div>--}}
-
-
-            {{-- ================================================= --}}
-            {{-- NOM / PRÉNOM / TÉLÉPHONE --}}
-            {{-- ================================================= --}}
-
-            <div class="row g-3 mt-1">
-
-                {{-- NOM --}}
-
-                <div class="col-md-4">
-
-                    <label class="form-label">
-
-                        Nom
-
-                        <span class="text-danger">*</span>
-
-                    </label>
-
-                    <input
-                        type="text"
-                        wire:model="nom"
-                        class="form-control @error('nom') is-invalid @enderror"
-                        placeholder="Nom de l'élève / acheteur"
-                    >
-
-                    @error('nom')
-
-                        <div class="invalid-feedback">
-                            {{ $message }}
-                        </div>
-
-                    @enderror
-
-                </div>
-
-
-                {{-- PRÉNOM --}}
-
-                <div class="col-md-4">
-
-                    <label class="form-label">
-
-                        Prénom
-
-                        <span class="text-danger">*</span>
-
-                    </label>
-
-                    <input
-                        type="text"
-                        wire:model="prenom"
-                        class="form-control @error('prenom') is-invalid @enderror"
-                        placeholder="Prénom de l'élève / acheteur"
-                    >
-
-                    @error('prenom')
-
-                        <div class="invalid-feedback">
-                            {{ $message }}
-                        </div>
-
-                    @enderror
-
-                </div>
-
-
-                {{-- TÉLÉPHONE --}}
-
-                <div class="col-md-4">
-
-                    <label class="form-label">
-                        Téléphone
-                    </label>
-
-                    <input
-                        type="text"
-                        wire:model="telephone"
-                        class="form-control"
-                        placeholder="Téléphone"
-                    >
-
                 </div>
 
             </div>
 
         </div>
-
     </div>
 
 
-
     {{-- ========================================================= --}}
-    {{-- CATÉGORIES DE RECETTES --}}
+    {{-- 2. ANCIEN ÉLÈVE --}}
     {{-- ========================================================= --}}
-
-    <div class="card shadow-sm mb-4">
-
-        <div class="card-header">
-
-            <h6 class="mb-0 fw-bold">
-
-                2. Catégories de recettes
-
-                <span class="text-muted fw-normal">
-                    (plusieurs choix possibles)
-                </span>
-
-            </h6>
-
-        </div>
-
-
-        <div class="card-body">
-
-            @if(count($categoriesRecettes))
-
-                <div class="row g-3">
-
-                    @foreach($categoriesRecettes as $categorie)
-
-    <div class="col-md-3 col-sm-6">
-
-        @php
-            $categorieSelectionnee =
-                in_array(
-                    $categorie['id'],
-                    $categoriesSelectionnees
-                );
-        @endphp
-
-        <div class="card h-100
-            {{ $categorieSelectionnee
-                ? 'border-primary shadow-sm'
-                : ''
-            }}"
-        >
-
-            <div class="card-body">
-
-                <div class="form-check">
-
-                    <input
-                        type="checkbox"
-                        class="form-check-input"
-                        id="categorie-{{ $categorie['id'] }}"
-                        value="{{ $categorie['id'] }}"
-                        wire:model.live="categoriesSelectionnees"
-                    >
-
-                    <label
-                        class="form-check-label fw-bold"
-                        for="categorie-{{ $categorie['id'] }}"
-                    >
-                        {{ $categorie['nom'] }}
-                    </label>
-
-                </div>
-
-                @if(!empty($categorie['code']))
-                    <small class="text-muted">
-                        {{ $categorie['code'] }}
-                    </small>
-                @endif
-
-            </div>
-
-        </div>
-
-    </div>
-
-@endforeach
-                </div>
-
-            @else
-
-                <div class="alert alert-warning mb-0">
-
-                    <i class="bi bi-exclamation-triangle"></i>
-
-                    Aucune catégorie d'achat n'est disponible.
-
-                </div>
-
-            @endif
-
-
-            @if(count($categoriesSelectionnees))
-
-                <div class="alert alert-info mt-3 mb-0">
-
-                    <i class="bi bi-info-circle"></i>
-
-                    <strong>
-                        {{ count($categoriesSelectionnees) }}
-                    </strong>
-
-                    catégorie(s) sélectionnée(s).
-
-                </div>
-
-            @endif
-
-        </div>
-
-    </div>
-
-
-
-    {{-- ========================================================= --}}
-    {{-- ARTICLES --}}
-    {{-- ========================================================= --}}
-
-    @if(count($fraisDisponibles))
+    @if ($typeEleve === 'ancien')
 
         <div class="card shadow-sm mb-4">
 
-            <div class="card-header">
-
-                <h6 class="mb-0 fw-bold">
-
-                    3. Articles / frais
-
-                </h6>
-
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-person me-2"></i>
+                    Sélectionner l'ancien élève
+                </h5>
             </div>
-
 
             <div class="card-body">
 
                 <div class="row g-3">
 
-                    @foreach($fraisDisponibles as $index => $frais)
+                    <div class="col-md-8">
 
-    <div class="col-md-4">
+                        <label class="form-label fw-bold">
+                            Élève
+                        </label>
 
-        <div class="card h-100
-            {{ $frais['selectionne']
-                ? 'border-primary shadow-sm'
-                : ''
-            }}"
-        >
+                        <select
+                            class="form-select"
+                            wire:model.live="inscriptionId"
+                        >
+                            <option value="">
+                                -- Sélectionner l'élève --
+                            </option>
 
-            <div class="card-body">
+                            @forelse ($inscriptions as $inscription)
 
-                {{-- Catégorie --}}
-                @if(!empty($frais['categorie']))
-                    <span class="badge bg-primary mb-2">
-                        {{ $frais['categorie'] }}
-                    </span>
-                @endif
+                                <option value="{{ $inscription['id'] }}">
+                                    {{ $inscription['nom'] }}
 
-                {{-- Article --}}
-                <h6 class="fw-bold">
-                    {{ $frais['nom'] }}
-                </h6>
+                                    @if (!empty($inscription['matricule']))
+                                        — Matricule :
+                                        {{ $inscription['matricule'] }}
+                                    @endif
+                                </option>
 
-                {{-- Description --}}
-                @if(!empty($frais['description']))
-                    <p class="text-muted small mb-2">
-                        {{ $frais['description'] }}
-                    </p>
-                @endif
+                            @empty
 
-                {{-- Montant --}}
-                <div class="mt-3">
+                                <option value="" disabled>
+                                    Aucun élève inscrit dans cette classe
+                                </option>
 
-                    <span class="text-muted small">
-                        Montant :
-                    </span>
+                            @endforelse
+                        </select>
 
-                    <strong class="fs-5 text-primary">
-                        {{ number_format(
-                            $frais['montant'],
-                            0,
-                            ',',
-                            ' '
-                        ) }}
-                        FCFA
-                    </strong>
+                    </div>
 
-                </div>
 
-                {{-- Sélection --}}
-                <div class="form-check mt-3">
+                    {{-- Classe sélectionnée --}}
+                    <div class="col-md-4">
 
-                    <input
-                        type="checkbox"
-                        class="form-check-input"
-                        id="frais-{{ $index }}"
-                        wire:click="toggleFrais({{ $index }})"
-                        @checked($frais['selectionne'])
-                    >
+                        <label class="form-label fw-bold">
+                            Classe
+                        </label>
 
-                    <label
-                        class="form-check-label"
-                        for="frais-{{ $index }}"
-                    >
-                        Ajouter au panier
-                    </label>
+                        <div class="form-control bg-light">
 
-                </div>
+                            @php
+                                $classeSelectionnee = collect($classes)
+                                    ->firstWhere('id', $classeId);
+                            @endphp
 
-            </div>
+                            {{ $classeSelectionnee?->nom ?? '—' }}
 
-        </div>
+                        </div>
 
-    </div>
-
-@endforeach
+                    </div>
 
                 </div>
 
 
-                {{-- Aucun montant --}}
+                {{-- Informations élève --}}
+                @if ($inscriptionId)
 
-                @if(
-                    collect($fraisDisponibles)
-                        ->sum(
-                            fn ($frais) =>
-                                (float) ($frais['montant'] ?? 0)
-                        ) <= 0
-                )
+                    <div class="row g-3 mt-2">
 
-                    <div class="alert alert-warning mt-3 mb-0">
+                        <div class="col-md-4">
+                            <label class="form-label">
+                                Nom
+                            </label>
 
-                        <i class="bi bi-exclamation-triangle"></i>
+                            <input
+                                type="text"
+                                class="form-control"
+                                value="{{ $nom }}"
+                                readonly
+                            >
+                        </div>
 
-                        Aucun montant n'est configuré pour les articles
-                        sélectionnés dans cette classe et cette année scolaire.
+                        <div class="col-md-4">
+                            <label class="form-label">
+                                Prénom
+                            </label>
+
+                            <input
+                                type="text"
+                                class="form-control"
+                                value="{{ $prenom }}"
+                                readonly
+                            >
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">
+                                Téléphone
+                            </label>
+
+                            <input
+                                type="text"
+                                class="form-control"
+                                value="{{ $telephone }}"
+                                readonly
+                            >
+                        </div>
 
                     </div>
 
                 @endif
 
             </div>
-
-        </div>
-
-    @elseif(count($categoriesSelectionnees))
-
-        <div class="alert alert-warning mb-4">
-
-            <i class="bi bi-info-circle"></i>
-
-            Aucun article n'est disponible pour les catégories
-            sélectionnées.
-
         </div>
 
     @endif
 
 
-
     {{-- ========================================================= --}}
-    {{-- PANIER --}}
+    {{-- 3. NOUVEAU ÉLÈVE --}}
     {{-- ========================================================= --}}
-
-    @if(count($achats))
+    @if ($typeEleve === 'nouveau')
 
         <div class="card shadow-sm mb-4">
 
-            <div class="card-header bg-light">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-person-plus me-2"></i>
+                    Nouveau élève
+                </h5>
+            </div>
 
-                <h6 class="mb-0 fw-bold">
+            <div class="card-body">
 
-                    4. Panier
+                <div class="row g-3">
 
-                </h6>
+                    {{-- Nom --}}
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">
+                            Nom <span class="text-danger">*</span>
+                        </label>
+
+                        <input
+                            type="text"
+                            class="form-control"
+                            wire:model.defer="nouveauEleve.nom"
+                            placeholder="Nom de l'élève"
+                        >
+
+                        @error('nouveauEleve.nom')
+                            <div class="text-danger small mt-1">
+                                {{ $message }}
+                            </div>
+                        @enderror
+                    </div>
+
+
+                    {{-- Prénom --}}
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">
+                            Prénom <span class="text-danger">*</span>
+                        </label>
+
+                        <input
+                            type="text"
+                            class="form-control"
+                            wire:model.defer="nouveauEleve.prenom"
+                            placeholder="Prénom de l'élève"
+                        >
+
+                        @error('nouveauEleve.prenom')
+                            <div class="text-danger small mt-1">
+                                {{ $message }}
+                            </div>
+                        @enderror
+                    </div>
+
+
+                    {{-- Sexe --}}
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">
+                            Sexe
+                        </label>
+
+                        <select
+                            class="form-select"
+                            wire:model.defer="nouveauEleve.sexe"
+                        >
+                            <option value="">
+                                -- Sélectionner --
+                            </option>
+
+                            <option value="M">
+                                Masculin
+                            </option>
+
+                            <option value="F">
+                                Féminin
+                            </option>
+                        </select>
+
+                        @error('nouveauEleve.sexe')
+                            <div class="text-danger small mt-1">
+                                {{ $message }}
+                            </div>
+                        @enderror
+                    </div>
+
+
+                    {{-- Date naissance --}}
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">
+                            Date de naissance
+                        </label>
+
+                        <input
+                            type="date"
+                            class="form-control"
+                            wire:model.defer="nouveauEleve.date_naissance"
+                        >
+
+                        @error('nouveauEleve.date_naissance')
+                            <div class="text-danger small mt-1">
+                                {{ $message }}
+                            </div>
+                        @enderror
+                    </div>
+
+
+                    {{-- Lieu naissance --}}
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">
+                            Lieu de naissance
+                        </label>
+
+                        <input
+                            type="text"
+                            class="form-control"
+                            wire:model.defer="nouveauEleve.lieu_naissance"
+                            placeholder="Lieu de naissance"
+                        >
+
+                        @error('nouveauEleve.lieu_naissance')
+                            <div class="text-danger small mt-1">
+                                {{ $message }}
+                            </div>
+                        @enderror
+                    </div>
+
+
+                    {{-- Téléphone --}}
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">
+                            Téléphone
+                        </label>
+
+                        <input
+                            type="text"
+                            class="form-control"
+                            wire:model.defer="nouveauEleve.telephone"
+                            placeholder="Téléphone"
+                        >
+
+                        @error('nouveauEleve.telephone')
+                            <div class="text-danger small mt-1">
+                                {{ $message }}
+                            </div>
+                        @enderror
+                    </div>
+
+
+                    {{-- Adresse --}}
+                    <div class="col-md-8">
+                        <label class="form-label fw-bold">
+                            Adresse
+                        </label>
+
+                        <input
+                            type="text"
+                            class="form-control"
+                            wire:model.defer="nouveauEleve.adresse"
+                            placeholder="Adresse"
+                        >
+
+                        @error('nouveauEleve.adresse')
+                            <div class="text-danger small mt-1">
+                                {{ $message }}
+                            </div>
+                        @enderror
+                    </div>
+
+{{-- Classe sélectionnée --}}
+<div class="col-md-4">
+    <label class="form-label fw-bold">
+        Classe
+    </label>
+
+    @php
+        $classeSelectionnee = collect($classes)
+            ->firstWhere('id', $classeId);
+    @endphp
+
+    <input
+        type="text"
+        class="form-control bg-light"
+        value="{{ $classeSelectionnee['nom'] ?? '' }}"
+        readonly
+    >
+
+    <input
+        type="hidden"
+        wire:model="classeId"
+    >
+</div>
+                </div>
+
+
+                <div class="mt-4">
+
+                    <button
+                        type="button"
+                        class="btn btn-success"
+                        wire:click="enregistrerNouvelEleve"
+                        wire:loading.attr="disabled"
+                        wire:target="enregistrerNouvelEleve"
+                    >
+                        <span
+                            wire:loading.remove
+                            wire:target="enregistrerNouvelEleve"
+                        >
+                            <i class="bi bi-person-plus me-1"></i>
+                            Enregistrer l'élève
+                        </span>
+
+                        <span
+                            wire:loading
+                            wire:target="enregistrerNouvelEleve"
+                        >
+                            <span class="spinner-border spinner-border-sm me-1"></span>
+                            Enregistrement...
+                        </span>
+                    </button>
+
+                </div>
+
+            </div>
+        </div>
+
+    @endif
+
+
+    {{-- ========================================================= --}}
+    {{-- 4. FRAIS DISPONIBLES --}}
+    {{-- ========================================================= --}}
+    @if (
+        $typeEleve &&
+        $classeId &&
+        $inscriptionId &&
+        !empty($fraisDisponibles)
+    )
+
+        <div class="card shadow-sm mb-4">
+
+            <div class="card-header bg-warning">
+
+                <div class="d-flex justify-content-between align-items-center">
+
+                    <h5 class="mb-0">
+                        <i class="bi bi-cash-coin me-2"></i>
+                        Frais à payer
+                    </h5>
+
+                    @if (!empty($achats))
+                        <span class="badge bg-dark">
+                            {{ count($achats) }}
+                            frais sélectionné(s)
+                        </span>
+                    @endif
+
+                </div>
 
             </div>
 
@@ -535,25 +582,38 @@
 
                 <div class="table-responsive">
 
-                    <table class="table table-hover mb-0">
+                    <table class="table table-hover align-middle mb-0">
 
-                        <thead>
+                        <thead class="table-light">
 
                             <tr>
 
-                                <th>
-                                    Catégorie
+                                <th width="60" class="text-center">
+                                    #
                                 </th>
 
                                 <th>
-                                    Article
+                                    Frais
+                                </th>
+
+                                <th>
+                                    Catégorie
                                 </th>
 
                                 <th class="text-end">
                                     Montant
                                 </th>
 
-                                <th width="60">
+                                <th class="text-end">
+                                    Déjà payé
+                                </th>
+
+                                <th class="text-end">
+                                    Reste
+                                </th>
+
+                                <th width="120" class="text-center">
+                                    Action
                                 </th>
 
                             </tr>
@@ -563,57 +623,215 @@
 
                         <tbody>
 
-                            @foreach($achats as $index => $achat)
+                            @forelse ($fraisDisponibles as $index => $frais)
 
-                                <tr>
+                                <tr
+                                    class="{{ !empty($frais['selectionne']) ? 'table-primary' : '' }}"
+                                >
 
-                                    <td>
-
-                                        <span class="badge bg-primary">
-
-                                            {{ $achat['categorie'] }}
-
-                                        </span>
-
+                                    <td class="text-center">
+                                        {{ $loop->iteration }}
                                     </td>
 
 
                                     <td>
 
-                                        {{ $achat['nom'] }}
+                                        <div class="fw-bold">
+                                            {{ $frais['nom'] ?? '—' }}
+                                        </div>
 
+                                    </td>
+
+
+                                    <td>
+                                        <span class="badge bg-secondary">
+                                            {{ $frais['categorie'] ?? '—' }}
+                                        </span>
+                                    </td>
+
+
+                                    <td class="text-end">
+                                        {{ number_format((float) ($frais['montant'] ?? 0), 0, ',', ' ') }}
+                                        FCFA
+                                    </td>
+
+
+                                    <td class="text-end text-success">
+
+                                        {{ number_format((float) ($frais['deja_paye'] ?? 0), 0, ',', ' ') }}
+                                        FCFA
+
+                                    </td>
+
+
+                                    <td class="text-end fw-bold text-danger">
+
+                                        {{ number_format((float) ($frais['reste'] ?? 0), 0, ',', ' ') }}
+                                        FCFA
+
+                                    </td>
+
+
+                                    <td class="text-center">
+
+                                        @if (!empty($frais['selectionne']))
+
+                                            <button
+                                                type="button"
+                                                class="btn btn-sm btn-danger"
+                                                wire:click="toggleFrais({{ $index }})"
+                                            >
+                                                <i class="bi bi-check-circle me-1"></i>
+                                                Retirer
+                                            </button>
+
+                                        @else
+
+                                            <button
+                                                type="button"
+                                                class="btn btn-sm btn-primary"
+                                                wire:click="toggleFrais({{ $index }})"
+                                            >
+                                                <i class="bi bi-plus-circle me-1"></i>
+                                                Ajouter
+                                            </button>
+
+                                        @endif
+
+                                    </td>
+
+                                </tr>
+
+                            @empty
+
+                                <tr>
+                                    <td
+                                        colspan="7"
+                                        class="text-center text-muted py-4"
+                                    >
+                                        <i class="bi bi-info-circle me-2"></i>
+                                        Aucun frais disponible pour cet élève.
+                                    </td>
+                                </tr>
+
+                            @endforelse
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    @endif
+
+
+    {{-- ========================================================= --}}
+    {{-- 5. FRAIS SÉLECTIONNÉS --}}
+    {{-- ========================================================= --}}
+    @if (!empty($achats))
+
+        <div class="card shadow-sm mb-4">
+
+            <div class="card-header bg-info text-white">
+
+                <h5 class="mb-0">
+                    <i class="bi bi-cart-check me-2"></i>
+                    Frais sélectionnés
+                </h5>
+
+            </div>
+
+
+            <div class="card-body p-0">
+
+                <div class="table-responsive">
+
+                    <table class="table table-striped align-middle mb-0">
+
+                        <thead>
+
+                            <tr>
+
+                                <th>
+                                    Frais
+                                </th>
+
+                                <th class="text-end">
+                                    Montant
+                                </th>
+
+                                <th class="text-end">
+                                    Déjà payé
+                                </th>
+
+                                <th class="text-end">
+                                    Reste
+                                </th>
+
+                                <th width="80">
+                                </th>
+
+                            </tr>
+
+                        </thead>
+
+
+                        <tbody>
+
+                            @foreach ($achats as $index => $achat)
+
+                                <tr>
+
+                                    <td>
+                                        <strong>
+                                            {{ $achat['nom'] ?? '—' }}
+                                        </strong>
+
+                                        @if (!empty($achat['categorie']))
+                                            <div class="small text-muted">
+                                                {{ $achat['categorie'] }}
+                                            </div>
+                                        @endif
                                     </td>
 
 
                                     <td class="text-end">
 
-                                        <strong>
-
-                                            {{ number_format(
-                                                (float) $achat['montant'],
-                                                0,
-                                                ',',
-                                                ' '
-                                            ) }}
-
-                                            FCFA
-
-                                        </strong>
+                                        {{ number_format((float) ($achat['montant'] ?? 0), 0, ',', ' ') }}
+                                        FCFA
 
                                     </td>
 
 
-                                    <td>
+                                    <td class="text-end text-success">
+
+                                        {{ number_format((float) ($achat['deja_paye'] ?? 0), 0, ',', ' ') }}
+                                        FCFA
+
+                                    </td>
+
+
+                                    <td class="text-end fw-bold">
+
+                                        {{ number_format((float) ($achat['reste'] ?? 0), 0, ',', ' ') }}
+                                        FCFA
+
+                                    </td>
+
+
+                                    <td class="text-center">
 
                                         <button
                                             type="button"
                                             class="btn btn-sm btn-outline-danger"
                                             wire:click="supprimerAchat({{ $index }})"
-                                            title="Retirer du panier"
+                                            title="Retirer"
                                         >
-
                                             <i class="bi bi-trash"></i>
-
                                         </button>
 
                                     </td>
@@ -630,286 +848,399 @@
 
             </div>
 
-
-            <div class="card-footer">
-
-                <div class="d-flex justify-content-between align-items-center">
-
-                    <strong>
-                        TOTAL
-                    </strong>
-
-                    <strong class="fs-5 text-success">
-
-                        {{ number_format(
-                            (float) $total,
-                            0,
-                            ',',
-                            ' '
-                        ) }}
-
-                        FCFA
-
-                    </strong>
-
-                </div>
-
-            </div>
-
         </div>
 
     @endif
 
 
-
     {{-- ========================================================= --}}
-    {{-- PAIEMENT --}}
+    {{-- 6. PAIEMENT --}}
     {{-- ========================================================= --}}
+    @if (!empty($achats))
 
-    <div class="card shadow-sm">
+        <div class="card shadow-sm mb-4">
 
-        <div class="card-header">
+            <div class="card-header bg-dark text-white">
 
-            <h6 class="mb-0 fw-bold">
-
-                5. Paiement
-
-            </h6>
-
-        </div>
-
-
-        <div class="card-body">
-
-            <div class="row g-3">
-
-                {{-- MODE DE PAIEMENT --}}
-
-                <div class="col-md-6">
-
-                    <label class="form-label">
-
-                        Mode de paiement
-
-                        <span class="text-danger">*</span>
-
-                    </label>
-
-                    <select
-                        wire:model="modePaiement"
-                        class="form-select @error('modePaiement') is-invalid @enderror"
-                    >
-
-                        <option value="">
-                            -- Sélectionner --
-                        </option>
-
-                        <option value="Espèces">
-                            Espèces
-                        </option>
-
-                        <option value="Mobile Money">
-                            Mobile Money
-                        </option>
-
-                        <option value="Virement">
-                            Virement
-                        </option>
-
-                        <option value="Chèque">
-                            Chèque
-                        </option>
-
-                    </select>
-
-
-                    @error('modePaiement')
-
-                        <div class="invalid-feedback">
-                            {{ $message }}
-                        </div>
-
-                    @enderror
-
-                </div>
-
-
-                {{-- DATE --}}
-
-                <div class="col-md-6">
-
-                    <label class="form-label">
-
-                        Date
-
-                        <span class="text-danger">*</span>
-
-                    </label>
-
-                    <input
-                        type="date"
-                        wire:model="datePaiement"
-                        class="form-control @error('datePaiement') is-invalid @enderror"
-                    >
-
-
-                    @error('datePaiement')
-
-                        <div class="invalid-feedback">
-                            {{ $message }}
-                        </div>
-
-                    @enderror
-
-                </div>
+                <h5 class="mb-0">
+                    <i class="bi bi-wallet2 me-2"></i>
+                    Enregistrement du paiement
+                </h5>
 
             </div>
 
 
-            {{-- ERREURS PANIER --}}
+            <div class="card-body">
 
-            @error('achats')
+                <div class="row g-4">
 
-                <div class="alert alert-danger mt-3">
+                    {{-- Colonne informations --}}
+                    <div class="col-lg-6">
 
-                    <i class="bi bi-exclamation-triangle"></i>
-
-                    {{ $message }}
-
-                </div>
-
-            @enderror
+                        <h6 class="fw-bold mb-3">
+                            Informations du paiement
+                        </h6>
 
 
-            {{-- TOTAL --}}
+                        {{-- Nom --}}
+                        <div class="mb-3">
 
-            <div class="d-flex justify-content-between align-items-center mt-4">
+                            <label class="form-label">
+                                Nom
+                            </label>
 
-                <div>
+                            <input
+                                type="text"
+                                class="form-control"
+                                wire:model.defer="nom"
+                                placeholder="Nom"
+                            >
 
-                    <span class="text-muted">
-                        Total à payer
-                    </span>
+                        </div>
 
-                    <div class="fs-3 fw-bold">
 
-                        {{ number_format(
-                            (float) $total,
-                            0,
-                            ',',
-                            ' '
-                        ) }}
+                        {{-- Prénom --}}
+                        <div class="mb-3">
 
-                        FCFA
+                            <label class="form-label">
+                                Prénom
+                            </label>
+
+                            <input
+                                type="text"
+                                class="form-control"
+                                wire:model.defer="prenom"
+                                placeholder="Prénom"
+                            >
+
+                        </div>
+
+
+                        {{-- Téléphone --}}
+                        <div class="mb-3">
+
+                            <label class="form-label">
+                                Téléphone
+                            </label>
+
+                            <input
+                                type="text"
+                                class="form-control"
+                                wire:model.defer="telephone"
+                                placeholder="Téléphone"
+                            >
+
+                        </div>
+
+
+                        {{-- Mode paiement --}}
+                        <div class="mb-3">
+
+                            <label class="form-label fw-bold">
+                                Mode de paiement
+                            </label>
+
+                            <select
+                                class="form-select"
+                                wire:model.defer="modePaiement"
+                            >
+
+                                <option value="">
+                                    -- Choisir --
+                                </option>
+
+                                <option value="especes">
+                                    Espèces
+                                </option>
+
+                                <option value="mobile_money">
+                                    Mobile Money
+                                </option>
+
+                                <option value="virement">
+                                    Virement bancaire
+                                </option>
+
+                                <option value="cheque">
+                                    Chèque
+                                </option>
+
+                            </select>
+
+                            @error('modePaiement')
+                                <div class="text-danger small mt-1">
+                                    {{ $message }}
+                                </div>
+                            @enderror
+
+                        </div>
+
+
+                        {{-- Date --}}
+                        <div class="mb-3">
+
+                            <label class="form-label fw-bold">
+                                Date de paiement
+                            </label>
+
+                            <input
+                                type="date"
+                                class="form-control"
+                                wire:model.defer="datePaiement"
+                            >
+
+                            @error('datePaiement')
+                                <div class="text-danger small mt-1">
+                                    {{ $message }}
+                                </div>
+                            @enderror
+
+                        </div>
+
+                    </div>
+
+
+                    {{-- Colonne montant --}}
+                    <div class="col-lg-6">
+
+                        <h6 class="fw-bold mb-3">
+                            Récapitulatif
+                        </h6>
+
+
+                        <div class="card bg-light border-0">
+
+                            <div class="card-body">
+
+                                {{-- Total frais --}}
+                                <div class="d-flex justify-content-between mb-3">
+
+                                    <span>
+                                        Total des frais
+                                    </span>
+
+                                    <strong>
+                                        {{ number_format((float) $totalFrais, 0, ',', ' ') }}
+                                        FCFA
+                                    </strong>
+
+                                </div>
+
+
+                                {{-- Déjà payé --}}
+                                <div class="d-flex justify-content-between mb-3">
+
+                                    <span>
+                                        Déjà payé
+                                    </span>
+
+                                    <strong class="text-success">
+                                        {{ number_format((float) $totalDejaPaye, 0, ',', ' ') }}
+                                        FCFA
+                                    </strong>
+
+                                </div>
+
+
+                                <hr>
+
+
+                                {{-- Reste avant --}}
+                                <div class="d-flex justify-content-between mb-3">
+
+                                    <span class="fw-bold">
+                                        Reste avant paiement
+                                    </span>
+
+                                    <strong class="text-danger">
+                                        {{ number_format((float) $resteAvantPaiement, 0, ',', ' ') }}
+                                        FCFA
+                                    </strong>
+
+                                </div>
+
+
+                                {{-- Montant payé --}}
+                                <div class="mb-3">
+
+                                    <label class="form-label fw-bold">
+                                        Montant à payer
+                                        <span class="text-danger">*</span>
+                                    </label>
+
+                                    <div class="input-group input-group-lg">
+
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            step="1"
+                                            class="form-control text-end fw-bold"
+                                            wire:model.live="montantPaye"
+                                            placeholder="0"
+                                        >
+
+                                        <span class="input-group-text">
+                                            FCFA
+                                        </span>
+
+                                    </div>
+
+                                    @error('montantPaye')
+                                        <div class="text-danger small mt-1">
+                                            {{ $message }}
+                                        </div>
+                                    @enderror
+
+                                </div>
+
+
+                                {{-- Reste après --}}
+                                <div class="d-flex justify-content-between">
+
+                                    <span class="fw-bold">
+                                        Reste après paiement
+                                    </span>
+
+                                    <strong class="text-primary fs-5">
+                                        {{ number_format((float) $resteApresPaiement, 0, ',', ' ') }}
+                                        FCFA
+                                    </strong>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        {{-- Bouton paiement --}}
+                        <div class="d-grid mt-4">
+
+                            <button
+                                type="button"
+                                class="btn btn-primary btn-lg"
+                                wire:click="enregistrer"
+                                wire:loading.attr="disabled"
+                                wire:target="enregistrer"
+                                @disabled(empty($achats) || $montantPaye <= 0)
+                            >
+
+                                <span
+                                    wire:loading.remove
+                                    wire:target="enregistrer"
+                                >
+                                    <i class="bi bi-check-circle me-2"></i>
+                                    Enregistrer le paiement
+                                </span>
+
+                                <span
+                                    wire:loading
+                                    wire:target="enregistrer"
+                                >
+                                    <span class="spinner-border spinner-border-sm me-2"></span>
+                                    Enregistrement en cours...
+                                </span>
+
+                            </button>
+
+                        </div>
 
                     </div>
 
                 </div>
 
-
-                {{-- BOUTON --}}
-
-                <button
-                    type="button"
-                    wire:click="enregistrer"
-                    wire:loading.attr="disabled"
-                    wire:target="enregistrer"
-                    class="btn btn-success btn-lg"
-                    @disabled($total <= 0)
-                >
-
-                    <span
-                        wire:loading
-                        wire:target="enregistrer"
-                    >
-
-                        <span
-                            class="spinner-border spinner-border-sm me-1"
-                            role="status"
-                        ></span>
-
-                        Enregistrement...
-
-                    </span>
-
-
-                    <span
-                        wire:loading.remove
-                        wire:target="enregistrer"
-                    >
-
-                        <i class="bi bi-printer"></i>
-
-                        Enregistrer et imprimer
-
-                    </span>
-
-                </button>
-
             </div>
-
-        </div>
-
-    </div>
-
-
-
-    {{-- ========================================================= --}}
-    {{-- MESSAGE DE SUCCÈS --}}
-    {{-- ========================================================= --}}
-
-    @if($successMessage)
-
-        <div class="alert alert-success mt-4">
-
-            <div>
-
-                <i class="bi bi-check-circle-fill"></i>
-
-                {{ $successMessage }}
-
-            </div>
-
-
-            @if($numeroRecuGenere)
-
-                <div class="mt-2">
-
-                    <strong>
-
-                        Reçu :
-
-                        {{ $numeroRecuGenere }}
-
-                    </strong>
-
-                </div>
-
-            @endif
 
         </div>
 
     @endif
 
 
+    {{-- ========================================================= --}}
+    {{-- 7. DERNIER REÇU --}}
+    {{-- ========================================================= --}}
+    @if ($numeroRecuGenere)
+
+        <div class="card shadow-sm border-success mb-4">
+
+            <div class="card-body">
+
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+
+                    <div>
+
+                        <h5 class="text-success mb-1">
+                            <i class="bi bi-receipt me-2"></i>
+                            Paiement enregistré
+                        </h5>
+
+                        <div class="text-muted">
+                            Numéro de reçu :
+                            <strong>
+                                {{ $numeroRecuGenere }}
+                            </strong>
+                        </div>
+
+                    </div>
+
+
+                    <div>
+
+                        <button
+                            type="button"
+                            class="btn btn-outline-success"
+                            wire:click="imprimerRecu('{{ $numeroRecuGenere }}')"
+                            wire:loading.attr="disabled"
+                            wire:target="imprimerRecu"
+                        >
+
+                            <span
+                                wire:loading.remove
+                                wire:target="imprimerRecu"
+                            >
+                                <i class="bi bi-printer me-2"></i>
+                                Réimprimer le reçu
+                            </span>
+
+                            <span
+                                wire:loading
+                                wire:target="imprimerRecu"
+                            >
+                                <span class="spinner-border spinner-border-sm me-2"></span>
+                                Impression...
+                            </span>
+
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    @endif
+
 
     {{-- ========================================================= --}}
-    {{-- MESSAGES D'IMPRESSION --}}
+    {{-- LOADING GLOBAL --}}
     {{-- ========================================================= --}}
-
     <div
-        x-data
-        x-on:impressionEchouee.window="
-            alert(
-                'Le paiement a été enregistré, mais l’impression du reçu a échoué.'
-            )
-        "
-    ></div>
+        wire:loading
+        wire:target="chargerClasses,updatedClasseId,updatedTypeEleve,updatedInscriptionId,chargerFrais"
+        class="position-fixed top-0 start-50 translate-middle-x mt-3"
+        style="z-index: 9999;"
+    >
 
+        <div class="alert alert-info shadow">
 
-    <div
-        x-data
-        x-on:impressionReussie.window=""
-    ></div>
+            <span class="spinner-border spinner-border-sm me-2"></span>
+
+            Chargement en cours...
+
+        </div>
+
+    </div>
 
 </div>

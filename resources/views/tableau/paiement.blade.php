@@ -18,9 +18,9 @@
 
             @php
                 $cards1 = [
-                    ['route'=>'paiements.create-up','color'=>'primary','icon'=>'people-fill','title'=>'ENREGISTRER DES PAIEMENTS '],
                     ['route'=>'paiements.paiement','color'=>'primary','icon'=>'person-lines-fill','title'=>'ENREGISTRER PAIEMENTS'],
-                    ['route'=>'paiements.index','color'=>'primary','icon'=>'journal-text','title'=>'HISTORIQUE PAIEMENTS'],
+                    ['route'=>'paiements.achat','color'=>'primary','icon'=>'people-fill','title'=>'ENREGISTRER DES PAIEMENTS ACHATS'],
+                    ['route'=>'paiements.filtre','color'=>'primary','icon'=>'journal-text','title'=>'FILTRAGE DES PAIEMENTS'],
                     ['route'=>'paiements.historique','color'=>'primary','icon'=>'clipboard-check','title'=>'PAIEMENTS CUMULES'],
                 ];
             @endphp
@@ -150,7 +150,8 @@
                 $cards2 = [
                     ['route'=>'recettes.index','color'=>'info','icon'=>'journal-bookmark-fill','title'=>'RECETTES'],
                     ['route'=>'contrats-prestataires.create','color'=>'info','icon'=>'journal-bookmark-fill','title'=>'ENREGISTRER UN CONTRAT DE PRESTATION'],
-                    ['route'=>'contrats-prestataires.index','color'=>'info','icon'=>'journal-bookmark-fill','title'=>' CONTRATS DE PRESTATIONS']
+                    ['route'=>'contrats-prestataires.index','color'=>'info','icon'=>'journal-bookmark-fill','title'=>' CONTRATS DE PRESTATIONS'],
+                    ['route'=>'paiements.index','color'=>'info','icon'=>'journal-bookmark-fill','title'=>' LES PAIEMENTS']
 
 
                     ];
@@ -169,6 +170,32 @@
                 </div>
             @endforeach
         </div>
+<div class="row g-3 mb-4">
+
+            @php
+                $cards2 = [
+                    ['route'=>'types-recettes.create','color'=>'info','icon'=>'journal-bookmark-fill','title'=>'CREER LES TYPES DE RECETTES'],
+                    ['route'=>'types-recettes.index','color'=>'info','icon'=>'journal-bookmark-fill','title'=>'LES TYPES DE RECETTES'],
+                    ['route'=>'depenses.create','color'=>'info','icon'=>'journal-bookmark-fill','title'=>'ENREGISTRER UNE DEPENSE'],
+                    
+
+                    ];
+            @endphp
+
+            @foreach($cards2 as $c)
+                <div class="col-xl-3 col-lg-4 col-md-6">
+                    <a href="{{ route($c['route']) }}" class="text-decoration-none">
+                        <div class="card dashboard-card bg-{{ $c['color'] }} text-white">
+                            <div class="card-body">
+                                <i class="bi bi-{{ $c['icon'] }} dashboard-icon"></i>
+                                <h6 class="dashboard-title">{{ $c['title'] }}</h6>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            @endforeach
+        </div>
+
 
     </div>
 </div>

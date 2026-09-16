@@ -37,4 +37,9 @@ class AnneeClasseFrais extends Model
     {
         return $this->belongsTo(Frais::class);
     }
+
+    public function inscriptionFrais()
+    {
+        return $this->hasMany(InscriptionFrais::class);
+    }
 }

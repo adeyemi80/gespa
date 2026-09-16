@@ -8,6 +8,7 @@ use App\Services\RecuThermiqueService;
 use App\Models\Frais;
 use App\Models\Classe;
 use App\Models\Cycle;
+use App\Models\PaiementAchat;
 use App\Models\Inscription;
 use App\Models\InscriptionFrais;
 use App\Models\Annee;
@@ -16,15 +17,370 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Log;
 
 class PaiementController extends Controller
 {
 
-public function index()
+public function index(Request $request)
 {
-    return view('paiements.index');
+    /*
+    |--------------------------------------------------------------------------
+    | Paiements classiques
+    |--------------------------------------------------------------------------
+    */
+    $paiements = Paiement::with([
+        'inscription.eleve',
+        'inscription.classe',
+        'inscription.annee',
+        'frais',
+        'recette',
+    ])
+    ->when($request->filled('annee_id'), function ($query) use ($request) {
+        $query->whereHas('inscription', function ($q) use ($request) {
+            $q->where('annee_id', $request->annee_id);
+        });
+    })
+    ->when($request->filled('search'), function ($query) use ($request) {
+
+        $search = trim($request->search);
+
+        $query->where(function ($q) use ($search) {
+
+            $q->where('numero_recu', 'ILIKE', "%{$search}%")
+
+                ->orWhereHas('inscription.eleve', function ($q2) use ($search) {
+                    $q2->where('nom', 'ILIKE', "%{$search}%")
+                       ->orWhere('prenom', 'ILIKE', "%{$search}%")
+                       ->orWhere('matricule', 'ILIKE', "%{$search}%");
+                })
+
+                ->orWhereHas('frais', function ($q2) use ($search) {
+                    $q2->where('nom', 'ILIKE', "%{$search}%");
+                });
+        });
+    })
+    ->get();
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Paiements provenant de paiement_achats
+    |--------------------------------------------------------------------------
+    */
+    $paiementsAchats = PaiementAchat::with([
+        'inscription.eleve',
+        'inscription.classe',
+        'inscription.annee',
+        'frais',
+        'recette',
+    ])
+    ->when($request->filled('annee_id'), function ($query) use ($request) {
+        $query->where(function ($q) use ($request) {
+
+            // Si l'inscription existe
+            $q->whereHas('inscription', function ($q2) use ($request) {
+                $q2->where('annee_id', $request->annee_id);
+            })
+
+            // Ou si le paiement possède une recette liée à l'année
+            ->orWhereHas('recette', function ($q2) use ($request) {
+                $q2->where('annee_id', $request->annee_id);
+            });
+        });
+    })
+    ->when($request->filled('search'), function ($query) use ($request) {
+
+        $search = trim($request->search);
+
+        $query->where(function ($q) use ($search) {
+
+            // Numéro de reçu
+            $q->where('numero_recu', 'ILIKE', "%{$search}%")
+
+                // Nom directement enregistré dans paiement_achats
+                ->orWhere('nom', 'ILIKE', "%{$search}%")
+
+                // Prénom directement enregistré dans paiement_achats
+                ->orWhere('prenom', 'ILIKE', "%{$search}%")
+
+                // Téléphone
+                ->orWhere('telephone', 'ILIKE', "%{$search}%")
+
+                // Élève lié à l'inscription
+                ->orWhereHas('inscription.eleve', function ($q2) use ($search) {
+                    $q2->where('nom', 'ILIKE', "%{$search}%")
+                       ->orWhere('prenom', 'ILIKE', "%{$search}%")
+                       ->orWhere('matricule', 'ILIKE', "%{$search}%");
+                })
+
+                // Frais
+                ->orWhereHas('frais', function ($q2) use ($search) {
+                    $q2->where('nom', 'ILIKE', "%{$search}%");
+                });
+        });
+    })
+    ->get();
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Uniformisation des deux sources
+    |--------------------------------------------------------------------------
+    |
+    | On ajoute :
+    | - source
+    | - montant_affiche
+    |
+    | afin que la vue puisse afficher les deux types de paiements
+    | avec la même structure.
+    |
+    */
+    $paiements = $paiements->map(function ($paiement) {
+
+        $paiement->source = 'paiement';
+
+        $paiement->montant_affiche = (float) $paiement->montant_verse;
+
+        return $paiement;
+    });
+
+
+    $paiementsAchats = $paiementsAchats->map(function ($paiement) {
+
+        $paiement->source = 'paiement_achat';
+
+        $paiement->montant_affiche = (float) $paiement->montant;
+
+        return $paiement;
+    });
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Fusion
+    |--------------------------------------------------------------------------
+    */
+    $tousLesPaiements = $paiements
+        ->merge($paiementsAchats)
+        ->sort(function ($a, $b) {
+
+            $dateA = $a->date_paiement
+                ? \Carbon\Carbon::parse($a->date_paiement)->timestamp
+                : 0;
+
+            $dateB = $b->date_paiement
+                ? \Carbon\Carbon::parse($b->date_paiement)->timestamp
+                : 0;
+
+            if ($dateA === $dateB) {
+                return ($b->id ?? 0) <=> ($a->id ?? 0);
+            }
+
+            return $dateB <=> $dateA;
+        })
+        ->values();
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Pagination manuelle
+    |--------------------------------------------------------------------------
+    */
+    $perPage = 50;
+
+    $currentPage = \Illuminate\Pagination\LengthAwarePaginator::resolveCurrentPage();
+
+    $total = $tousLesPaiements->count();
+
+    $items = $tousLesPaiements
+        ->slice(($currentPage - 1) * $perPage, $perPage)
+        ->values();
+
+
+    $paiements = new \Illuminate\Pagination\LengthAwarePaginator(
+        $items,
+        $total,
+        $perPage,
+        $currentPage,
+        [
+            'path' => $request->url(),
+            'query' => $request->query(),
+        ]
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Années scolaires
+    |--------------------------------------------------------------------------
+    */
+    $annees = Annee::orderByDesc('id')->get();
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Vue
+    |--------------------------------------------------------------------------
+    */
+    return view('paiements.index', compact(
+        'paiements',
+        'annees'
+    ));
 }
-    /**
+
+
+public function destroyAchat(string $numeroRecu)
+{
+    try {
+        DB::transaction(function () use ($numeroRecu) {
+
+            /*
+             * On verrouille toutes les lignes du reçu.
+             *
+             * C'est important pour éviter qu'un autre paiement
+             * ne modifie les mêmes données pendant la suppression.
+             */
+            $paiementsAchats = PaiementAchat::where(
+                'numero_recu',
+                $numeroRecu
+            )
+            ->lockForUpdate()
+            ->get();
+
+            if ($paiementsAchats->isEmpty()) {
+                throw new \RuntimeException(
+                    "Le reçu {$numeroRecu} est introuvable."
+                );
+            }
+
+            foreach ($paiementsAchats as $paiementAchat) {
+
+                /*
+                 * Si le paiement est lié à une inscription,
+                 * on restaure les montants dans inscription_frais.
+                 */
+                if (
+                    $paiementAchat->inscription_id &&
+                    $paiementAchat->frais_id
+                ) {
+
+                    $inscriptionFrais = DB::table('inscription_frais')
+                        ->where(
+                            'inscription_id',
+                            $paiementAchat->inscription_id
+                        )
+                        ->where(
+                            'frais_id',
+                            $paiementAchat->frais_id
+                        )
+                        ->lockForUpdate()
+                        ->first();
+
+                    if ($inscriptionFrais) {
+
+                        $montantPayeActuel = (float) $inscriptionFrais->montant_paye;
+                        $montantFrais = (float) $inscriptionFrais->montant_frais;
+                        $montantPaiement = (float) $paiementAchat->montant;
+
+                        /*
+                         * On retire exactement le montant
+                         * correspondant à ce paiement.
+                         */
+                        $nouveauMontantPaye = max(
+                            0,
+                            $montantPayeActuel - $montantPaiement
+                        );
+
+                        /*
+                         * Le reste ne peut jamais être négatif.
+                         */
+                        $nouveauReste = max(
+                            0,
+                            $montantFrais - $nouveauMontantPaye
+                        );
+
+                        /*
+                         * Recalcul du statut avec les valeurs
+                         * exactes de ta base.
+                         */
+                        if ($nouveauMontantPaye <= 0) {
+
+                            $nouveauStatut = 'non_payé';
+
+                        } elseif ($nouveauReste > 0) {
+
+                            $nouveauStatut = 'partiellement_payé';
+
+                        } else {
+
+                            $nouveauStatut = 'soldé';
+                        }
+
+                        DB::table('inscription_frais')
+                            ->where('id', $inscriptionFrais->id)
+                            ->update([
+                                'montant_paye' => $nouveauMontantPaye,
+                                'reste' => $nouveauReste,
+                                'statut' => $nouveauStatut,
+                                'updated_at' => now(),
+                            ]);
+                    }
+                }
+
+                /*
+                 * Suppression des recettes liées à CE paiement.
+                 *
+                 * On ne touche pas aux autres recettes.
+                 */
+                DB::table('recettes')
+                    ->where(
+                        'paiement_achat_id',
+                        $paiementAchat->id
+                    )
+                    ->delete();
+            }
+
+            /*
+             * Enfin, suppression de toutes les lignes
+             * paiement_achats appartenant à ce reçu.
+             */
+            PaiementAchat::where(
+                'numero_recu',
+                $numeroRecu
+            )->delete();
+        });
+
+        return redirect()
+            ->route('paiements.index')
+            ->with(
+                'success',
+                "Le reçu {$numeroRecu} et ses données associées ont été supprimés avec succès."
+            );
+
+    } catch (\Throwable $e) {
+
+        Log::error(
+            'Erreur lors de la suppression du reçu paiement achat',
+            [
+                'numero_recu' => $numeroRecu,
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]
+        );
+
+        return redirect()
+            ->back()
+            ->with(
+                'error',
+                "Impossible de supprimer le reçu {$numeroRecu}. Aucune donnée n'a été modifiée."
+            );
+    }
+}
+
+
+
+/**
      * ✅ AJAX : inscriptions filtrées par CLASSE + ANNÉE
      */
     public function getInscriptionsParClasse(Request $request, $classeId)
@@ -41,19 +397,7 @@ public function index()
         return response()->json($inscriptions);
     }
 
-    public function create()
-{
-   // Récupérer toutes les années
-    $annees = Annee::all();
-
-    // Récupérer l'année en cours
-    $anneeEnCours = Annee::where('en_cours', 't')->first();
-     $cycles = Cycle ::all();
-    $classes = Classe::orderByNiveau()->get();
-    $frais = Frais::all();
-
-    return view('paiements.create', compact('annees', 'anneeEnCours', 'classes', 'frais', 'cycles'));
-}
+   
 public function paiement()
 {
     return view('paiements.paiement');
@@ -66,88 +410,11 @@ public function fraisFilter()
 {
     return view('paiements.fraisFilter');
 }
-
-public function store(Request $request)
+public function filtre()
 {
-    $request->validate([
-        'annee_id'       => 'required|exists:annees,id',
-        'inscription_id' => 'required|exists:inscriptions,id',
-        'frais_id'       => 'required|exists:frais,id',
-        'montant_verse'  => 'required|numeric|min:1',
-        'mode_paiement'  => 'required|string',
-        'date_paiement'  => 'required|date',
-    ]);
+    return view('paiements.filtre');
+}
 
-    // Vérifie l'inscription pour l'année
-    $inscription = Inscription::where('id', $request->inscription_id)
-        ->where('annee_id', $request->annee_id)
-        ->first();
-
-    if (!$inscription) {
-        return back()->withErrors("❌ Inscription invalide pour cette année.");
-    }
-
-    DB::beginTransaction();
-    try {
-        // Récupère la ligne de frais
-        $ligne = DB::table('inscription_frais')
-            ->where('inscription_id', $inscription->id)
-            ->where('frais_id', $request->frais_id)
-            ->where('annee_id', $request->annee_id)
-            ->lockForUpdate()
-            ->first();
-
-        if (!$ligne) {
-            return back()->withErrors("❌ Aucune ligne de frais trouvée pour cet élève. Veuillez initialiser les frais d'abord.");
-        }
-
-        // Vérifie que le montant ne dépasse pas le reste
-        if ($request->montant_verse > $ligne->reste) {
-            return back()->withErrors("❌ Montant versé supérieur au reste à payer.");
-        }
-
-        // Crée le paiement
-        $paiement = Paiement::create([
-            'inscription_id' => $inscription->id,
-            'frais_id'       => $request->frais_id,
-            'montant_verse'  => $request->montant_verse,
-            'mode_paiement'  => $request->mode_paiement,
-            'date_paiement'  => $request->date_paiement,
-            'numero_recu'    => 'REC-' . now()->format('Ymd') . '-' .
-                str_pad((Paiement::max('id') ?? 0) + 1, 4, '0', STR_PAD_LEFT),
-        ]);
-
-        // Mise à jour de la ligne inscription_frais
-        $nouveauPaye = $ligne->montant_paye + $request->montant_verse;
-        $reste = $ligne->montant_frais - $nouveauPaye;
-
-        DB::table('inscription_frais')
-            ->where('id', $ligne->id)
-            ->update([
-                'montant_paye' => $nouveauPaye,
-                'reste'        => $reste,
-                'statut'       => $reste == 0 ? 'soldé' : 'partiellement_payé',
-                'updated_at'   => now(),
-            ]);
-
-
-        DB::commit();
-
-        // Récupère la ligne mise à jour pour le reçu
-        $ligne = DB::table('inscription_frais')
-            ->where('inscription_id', $inscription->id)
-            ->where('frais_id', $request->frais_id)
-            ->where('annee_id', $request->annee_id)
-            ->first();
-
-        // Retourne vers le reçu dans une nouvelle fenêtre
-        return response()->view('paiements.recu', compact('paiement', 'ligne'));
-
-    } catch (\Exception $e) {
-        DB::rollBack();
-        return back()->withErrors("❌ Erreur lors de l'enregistrement: " . $e->getMessage());
-    }
-}    
 
     public function update(Request $request, $id)
 {
@@ -411,330 +678,7 @@ public function historique()
     return $pdf->download('liste_paiements.pdf');
 }
 
-public function storeUP(Request $request)
-{
-    
-    $request->validate([
-        'annee_id'       => 'required|exists:annees,id',
-        'inscription_id' => 'required|exists:inscriptions,id',
-        'frais_ids'      => 'required|array',
-        'frais_ids.*'    => 'exists:frais,id',
-        'montants'       => 'required|array',
-        'montants.*'     => 'numeric|min:1',
-        'mode_paiement'  => 'required|string',
-        'date_paiement'  => 'required|date',
-    ]);
 
-    $inscription = Inscription::with(['eleve','classe','annee'])
-        ->where('id', $request->inscription_id)
-        ->where('annee_id', $request->annee_id)
-        ->firstOrFail();
-
-    DB::beginTransaction();
-
-    try {
-
-        $details = [];
-        $total   = 0;
-
-        // 🔢 Numéro unique pour tout le lot
-        $numeroLot = 'REC-' . date('Y') . '-' . strtoupper(Str::random(6));
-
-        foreach ($request->frais_ids as $index => $frais_id) {
-
-            $montant_verse = (float) $request->montants[$index];
-
-            $ligne = DB::table('inscription_frais')
-                ->where('inscription_id', $inscription->id)
-                ->where('frais_id', $frais_id)
-                ->where('annee_id', $request->annee_id)
-                ->lockForUpdate()
-                ->first();
-
-            if (!$ligne) {
-                throw new \Exception("Frais non initialisé.");
-            }
-
-            if ($ligne->statut === 'soldé') {
-                throw new \Exception("Un des frais sélectionnés est déjà soldé.");
-            }
-
-            $nouveauPaye = $ligne->montant_paye + $montant_verse;
-
-            if ($nouveauPaye > $ligne->montant_frais) {
-                throw new \Exception("Montant versé supérieur au reste.");
-            }
-
-            $reste = $ligne->montant_frais - $nouveauPaye;
-
-            // 🎯 Statut
-            if ($nouveauPaye == 0) {
-                $statut = 'non_payé';
-            } elseif ($nouveauPaye < $ligne->montant_frais) {
-                $statut = 'partiellement_payé';
-            } else {
-                $statut = 'soldé';
-            }
-
-            // 💾 Création paiement
-            $paiement = Paiement::create([
-                'inscription_id' => $inscription->id,
-                'frais_id'       => $frais_id,
-                'montant_verse'  => $montant_verse,
-                'montant_total'  => $ligne->montant_frais,
-                'mode_paiement'  => $request->mode_paiement,
-                'date_paiement'  => $request->date_paiement,
-                'numero_recu'    => $numeroLot,
-                'reference'      => 'REF-' . strtoupper(Str::random(8)),
-            ]);
-
-            // 🔁 Mise à jour pivot
-            DB::table('inscription_frais')
-                ->where('id', $ligne->id)
-                ->update([
-                    'montant_paye' => $nouveauPaye,
-                    'reste'        => $reste,
-                    'statut'       => $statut,
-                    'updated_at'   => now(),
-                ]);
-
-            // 📋 Détails pour le reçu
-            $frais = Frais::find($frais_id);
-
-            $details[] = [
-                'nom'     => $frais->nom,
-                'montant' => $montant_verse,
-            ];
-
-            $total += $montant_verse;
-        }
-
-        DB::commit();
-
-        // 📜 Historique
-        $historique = Paiement::where('inscription_id', $inscription->id)
-            ->orderBy('date_paiement', 'desc')
-            ->get();
-
-   return response()->json([
-    'success' => true,
-    'message' => '✅ Paiement enregistré avec Succès !',
-    'redirect' => route('paiements.recu', $numeroLot)
-]);
-// Paiements enregistrés avec succès
-
-try {
-
-    $this->imprimerTicketAutomatiquement($numeroLot);
-
-} catch (\Throwable $e) {
-
-    // Le paiement reste enregistré même si
-    // l'imprimante rencontre un problème.
-
-    \Log::error(
-        'Erreur impression reçu',
-        [
-            'numero_lot' => $numeroLot,
-            'message' => $e->getMessage(),
-        ]
-    );
-}
-    } catch (\Exception $e) {
-
-        DB::rollBack();
-
-        return back()->withErrors(
-            "❌ Erreur lors de l'enregistrement : " . $e->getMessage()
-        );
-    }
-}
-public function updateUP(Request $request, $id)
-{
-    $request->validate([
-        'inscription_id' => 'required|exists:inscriptions,id',
-        'annee_id'       => 'required|exists:annees,id',
-        'frais_id'       => 'required|exists:frais,id',
-        'montant_verse'  => 'required|numeric|min:1',
-        'mode_paiement'  => 'required|string',
-        'date_paiement'  => 'required|date',
-    ]);
-
-    $paiement = Paiement::findOrFail($id);
-
-    DB::transaction(function () use ($request, $paiement) {
-
-        $ligne = DB::table('inscription_frais')
-            ->where('inscription_id', $request->inscription_id)
-            ->where('frais_id', $request->frais_id)
-            ->where('annee_id', $request->annee_id)
-            ->lockForUpdate()
-            ->first();
-
-        if (!$ligne) {
-            throw new \Exception("❌ Frais introuvable.");
-        }
-
-        // 🔄 recalcul propre
-        $nouveauPaye = $ligne->montant_paye - $paiement->montant_verse + $request->montant_verse;
-
-        if ($nouveauPaye < 0 || $nouveauPaye > $ligne->montant_frais) {
-            throw new \Exception("❌ Montant invalide.");
-        }
-
-        $reste = $ligne->montant_frais - $nouveauPaye;
-
-        if ($nouveauPaye == 0) {
-            $statut = 'non_payé';
-        } elseif ($nouveauPaye < $ligne->montant_frais) {
-            $statut = 'partiellement_payé';
-        } else {
-            $statut = 'soldé';
-        }
-
-        $paiement->update([
-            'montant_verse' => $request->montant_verse,
-            'mode_paiement' => $request->mode_paiement,
-            'date_paiement' => $request->date_paiement,
-        ]);
-
-        DB::table('inscription_frais')
-            ->where('id', $ligne->id)
-            ->update([
-                'montant_paye' => $nouveauPaye,
-                'reste'        => $reste,
-                'statut'       => $statut,
-                'updated_at'   => now(),
-            ]);
-
-        Recette::where('paiement_id', $paiement->id)?->update([
-            'montant_verse' => $request->montant_verse,
-            'date_paiement' => $request->date_paiement,
-            'mode_paiement' => $request->mode_paiement,
-        ]);
-    });
-
-    return back()->with('success', '✅ Paiement mis à jour avec succès.');
-}
-
-
-public function createUP()
-{
-    $annees = Annee::all();
-
-    // Année en cours
-    $anneeEnCours = Annee::where('en_cours', true)->first();
-
-    if (!$anneeEnCours) {
-        $anneeEnCours = $annees->firstWhere('en_cours', 't');
-    }
-
-    if (!$anneeEnCours) {
-        $anneeEnCours = $annees->firstWhere('id', 2);
-    }
-
-    // Inscriptions triées par ordre alphabétique
-   $inscriptions = Inscription::with([
-        'eleve',
-        'classe',
-        'inscriptionFrais.frais'
-    ])
-    ->alphabetique()
-    ->get();
-    $classes = Classe::orderByNiveau()->get();
-
-    $cycles = Cycle::all();
-
-    return view('paiements.createUP', compact(
-        'annees',
-        'anneeEnCours',
-        'inscriptions',
-        'cycles',
-        'classes'
-    ));
-}
-
-
-
-public function recu($numeroLot)
-{
-    // 🔍 Récupération des paiements du reçu
-    $paiements = Paiement::with([
-    'inscription.eleve',
-    'inscription.classe',
-    'inscription.annee',
-    'inscription.frais', // 🔥 AJOUT ICI
-    'frais'
-])->where('numero_recu', $numeroLot)->get();
-
-    if ($paiements->isEmpty()) {
-        abort(404, "Aucun paiement trouvé pour ce reçu.");
-    }
-
-    $paiement     = $paiements->first();
-    $inscription  = $paiement->inscription;
-
-    if (!$inscription) {
-        abort(500, "Inscription non trouvée pour ce paiement.");
-    }
-
-    // 📋 Détails du reçu (CE REÇU uniquement)
-    $details = $paiements->map(function ($p) {
-        return [
-            'nom'     => $p->frais->nom ?? $p->frais->description ?? 'Frais inconnu',
-            'montant' => $p->montant_verse ?? 0,
-        ];
-    });
-
-    // 💰 Total de CE reçu
-    $total_ce_recu = $paiements->sum('montant_verse');
-
-    // ✅ Total payé (TOUS les paiements de l'inscription)
-    $total_paye = Paiement::where('inscription_id', $inscription->id)
-        ->sum('montant_verse');
-
-    // ✅ TOTAL RÉEL DES FRAIS (via pivot inscription_frais)
-    $total_frais = $inscription->frais->sum('pivot.montant_frais');
-
-    // ✅ RESTE RÉEL
-    $reste = $inscription->frais->sum('pivot.reste');
-
-    // 🎯 Statut réel
-    if ($reste == 0) {
-        $statut = 'Soldé';
-    } elseif ($total_paye > 0) {
-        $statut = 'Partiellement payé';
-    } else {
-        $statut = 'Non payé';
-    }
-
-// 📄 Génération PDF (format ticket pro)
-$pdf = Pdf::loadView('paiements.recu_multiple', [
-    'paiement'        => $paiement,
-    'paiements'       => $paiements,
-    'inscription'     => $inscription,
-    'details'         => $details,
-    'total_ce_recu'   => $total_ce_recu,
-    'total_paye'      => $total_paye,
-    'total_frais'     => $total_frais,
-    'reste'           => $reste,
-    'statut'          => $statut,
-    'numeroLot'       => $numeroLot,
-])
-
-// ✅ FORMAT TICKET (très important)
-->setPaper([0, 0, 226.77, 600], 'portrait') // 80mm thermal printer
-
-// ⚡ options PRO (qualité + performance)
-->setOptions([
-    'isHtml5ParserEnabled' => true,
-    'isRemoteEnabled' => true,
-    'defaultFont' => 'Courier',
-]);
-
-// 📥 téléchargement
-return $pdf->download("ticket-paiement-$numeroLot.pdf");
-}
 
 
 }

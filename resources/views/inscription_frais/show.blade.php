@@ -12,7 +12,12 @@
         <div class="card-header bg-primary text-white">
             <h5 class="mb-0">👁️ Détails du frais de l’élève</h5>
         </div>
-
+ @csrf
+            @if ($message = Session::get('success'))
+                <div class="alert alert-success" role="alert">
+                    {{ $message }}
+                </div>
+            @endif
         <div class="card-body">
 
             {{-- Informations élève --}}

@@ -93,10 +93,17 @@ class DepenseManager extends Component
     ];
 
     public function mount(): void
-    {
-        $anneeEnCours = Annee::where('en_cours', true)->first();
-        $this->anneeFiltre = (string) ($anneeEnCours->id ?? '');
+{
+    $anneeEnCours = Annee::where('en_cours', true)->first();
+
+    $this->anneeFiltre = (string) ($anneeEnCours->id ?? '');
+
+    // Ouvrir automatiquement le modal de création
+    // si la page a été appelée avec ?ouvrir=creation
+    if (request()->query('ouvrir') === 'creation') {
+        $this->ouvrirModalCreation();
     }
+}
 
     public function updatingRecherche(): void
     {
@@ -145,13 +152,20 @@ class DepenseManager extends Component
     }
 
     public function ouvrirModalCreation(): void
-    {
-        $this->resetFormulaire();
-        $this->numero_piece = $this->genererNumeroPiece();
-        $this->date_depense = now()->format('Y-m-d');
-        $this->modeEdition = false;
-        $this->showModal = true;
-    }
+{
+    $this->resetFormulaire();
+
+    // Sélectionner automatiquement l'année scolaire en cours
+    $anneeEnCours = Annee::where('en_cours', true)->first();
+
+    $this->annee_id = $anneeEnCours?->id;
+
+    $this->numero_piece = $this->genererNumeroPiece();
+    $this->date_depense = now()->format('Y-m-d');
+
+    $this->modeEdition = false;
+    $this->showModal = true;
+}
 
     public function ouvrirModalEdition(int $id): void
     {

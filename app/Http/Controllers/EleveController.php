@@ -45,13 +45,27 @@ class EleveController extends Controller
 }
 
     public function create()
-    {
-        $annees = Annee::all();
-        //$anneeEnCours = Annee::where('en_cours', true)->first();
-        $cycles = Cycle::with('classes')->orderBy('nom')->get();
+{
+    $annees = Annee::orderByDesc('id')->get();
 
-        return view('eleves.create', compact('annees', 'cycles'));
-    }
+    $anneeEnCours = Annee::where('en_cours', true)->first();
+
+    $cycles = Cycle::with('classes')
+        ->orderBy('nom')
+        ->get();
+
+    return view('eleves.create', compact(
+        'annees',
+        'anneeEnCours',
+        'cycles'
+    ));
+}
+
+ public function modifier()
+{
+    
+    return view('eleves.modifier');
+}
 
     public function store(Request $request)
 {

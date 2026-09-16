@@ -183,15 +183,27 @@
                                 </div>
 
                                 <div class="col-md-6">
-                                    <label class="form-label">Année scolaire <span class="text-danger">*</span></label>
-                                    <select wire:model="annee_id" class="form-select @error('annee_id') is-invalid @enderror">
-                                        <option value="">-- Sélectionner --</option>
-                                        @foreach ($annees as $annee)
-                                            <option value="{{ $annee->id }}">{{ $annee->nom }}</option>
-                                        @endforeach
-                                    </select>
-                                    @error('annee_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                                </div>
+    <label class="form-label">
+        Année scolaire <span class="text-danger">*</span>
+    </label>
+
+    <select wire:model="annee_id"
+            class="form-select @error('annee_id') is-invalid @enderror">
+
+        <option value="">-- Sélectionner --</option>
+
+        @foreach ($annees as $annee)
+            <option value="{{ $annee->id }}">
+                {{ $annee->nom }}
+            </option>
+        @endforeach
+
+    </select>
+
+    @error('annee_id')
+        <div class="invalid-feedback">{{ $message }}</div>
+    @enderror
+</div>
 
                                 <div class="col-mb-6">
     <label class="form-label">Cycle</label>

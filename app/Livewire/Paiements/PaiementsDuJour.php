@@ -210,28 +210,48 @@ class PaiementsDuJour extends Component
             ->values();
 
 
-        /*
-        |--------------------------------------------------------------------------
-        | TOTAL
-        |--------------------------------------------------------------------------
-        */
+            /*
+|--------------------------------------------------------------------------
+| TOTAL
+|--------------------------------------------------------------------------
+*/
 
-        $totalDuJour =
-            $paiements->sum('montant_verse');
+$totalDuJour =
+    $paiements->sum('montant_verse');
 
 
-        return view(
-            'livewire.paiements.paiements-du-jour',
-            [
-                'paiements' =>
-                    $paiements,
+/*
+|--------------------------------------------------------------------------
+| TOTAL PAR TYPE DE FRAIS
+|--------------------------------------------------------------------------
+*/
 
-                'date' =>
-                    $date,
+$totalParFrais = $paiements
+    ->groupBy(function ($paiement) {
+        return $paiement->description ?? 'Paiement';
+    })
+    ->map(function ($paiementsDuFrais) {
+        return $paiementsDuFrais->sum('montant_verse');
+    })
+    ->sortDesc();
 
-                'totalDuJour' =>
-                    $totalDuJour,
-            ]
-        );
+
+return view(
+    'livewire.paiements.paiements-du-jour',
+    [
+        'paiements' =>
+            $paiements,
+
+        'date' =>
+            $date,
+
+        'totalDuJour' =>
+            $totalDuJour,
+
+        'totalParFrais' =>
+            $totalParFrais,
+    ]
+);
+        
     }
 }

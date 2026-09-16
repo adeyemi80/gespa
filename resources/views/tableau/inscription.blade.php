@@ -18,6 +18,7 @@
             @php
                 $cards2 = [
                     ['route'=>'eleves.create','color'=>'info','icon'=>'journal-bookmark-fill','title'=>'INSCRIRE UN ELEVE'],
+                    ['route'=>'eleves.modifier','color'=>'info','icon'=>'journal-bookmark-fill','title'=>'MODIFIER LES INFORMATIONS D\'UN ELEVE'],
                     
                 ];
             @endphp

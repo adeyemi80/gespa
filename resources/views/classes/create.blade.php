@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('tableau.neutre')
 
 @section('content')
 <button 

@@ -11,5 +11,10 @@ class DepenseController extends Controller
     {
         return view('depenses.live');
     }
+    public function create()
+    {
+        return view('depenses.create');
+    }
+
 
 }

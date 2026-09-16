@@ -55,4 +55,8 @@ class InscriptionFrais extends Model
     {
         return $this->reste <= 0;
     }
+    public function anneeClasseFrais()
+{
+    return $this->belongsTo(AnneeClasseFrais::class);
+}
 }

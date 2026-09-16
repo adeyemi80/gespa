@@ -49,6 +49,7 @@ use App\Http\Controllers\PassageController;
 use App\Http\Controllers\FraisController;
 use App\Http\Controllers\EcheanceController;
 use App\Http\Controllers\PaiementController;
+use App\Livewire\Paiements\PaiementAchatLive;
 use App\Http\Controllers\ConduiteImportController;
 use App\Exports\PaiementsExport;
 use Maatwebsite\Excel\Facades\Excel;
@@ -102,6 +103,10 @@ use App\Http\Controllers\TdTarifController;
 use App\Http\Controllers\TdPresenceController;
 use App\Http\Controllers\TdPaiementController;
 use App\Http\Controllers\EtablissementController;
+use App\Http\Controllers\TypeRecetteController;
+use App\Livewire\Depenses\DepenseManager;
+
+
 
 
 
@@ -236,6 +241,7 @@ Route::get('eleves/erreurs/export', [EleveImportController::class, 'exportErreur
 Route::get('/eleves/export', [EleveImportController::class, 'export'])->name('eleves.export');
 Route::get('/eleves/import/erreurs', [EleveImportController::class, 'telechargerErreurs'])->name('eleves.import.erreurs');
 Route::get('/eleves/photos', [EleveController::class, 'photosForm'])->name('eleves.photos');
+Route::get('/eleves/modifier', [EleveController::class, 'modifier'])->name('eleves.modifier');
 /**Route::post('/eleves/import/photos/force', [EleveController::class, 'importPhotosForce']) ->name('eleves.import.photos.force');*/
 Route::post('/eleves/import/photos', [EleveController::class, 'importPhotos'])->name('eleves.import.photos');
 Route::resource('eleves', App\Http\Controllers\EleveController::class)->parameters([
@@ -288,11 +294,12 @@ Route::resource('inscription-frais', InscriptionFraisController::class);//->exce
 
 
 // Page de paiement multiple (Livewire)
+Route::get( '/paiements/achat', PaiementAchatLive::class)->name('paiements.achat');
 Route::get('/paiements/fraisFilter', [PaiementController::class, 'fraisFilter'])->name('paiements.fraisFilter');
 Route::get('/paiements/paiement', [PaiementController::class, 'paiement'])->name('paiements.paiement');
 Route::get('/paiements/achat', [PaiementController::class, 'achat'])->name('paiements.achat');
-//Route::get('/paiements/multiple', Paiements\PaiementMultiple::class)->name('paiements.multiple');
-// Reçu / ticket d'impression
+Route::get('/paiements/filtre', [PaiementController::class, 'filtre'])->name('paiements.filtre');
+Route::delete('/paiements/achat/{numeroRecu}',[PaiementController::class, 'destroyAchat'])->name('paiements.achat.destroy');
 Route::get('/paiements/ticket/{numeroLot}', [RecuPaiementController::class, 'ticket'])->name('paiements.ticket');
 //Route::get('/paiements', fn() => view('paiements.index'))->name('paiements.index');
 Route::get('paiements/historique', [PaiementController::class, 'historique']) ->name('paiements.historique');//->middleware(['auth', 'verified', 'role:admin,directeur']);
@@ -413,6 +420,7 @@ Route::prefix('bulletins')->name('bulletins.')->group(function () {
 Route::get('/bulletins', \App\Livewire\Bulletins\BulletinManager::class)->name('bulletins.manager');
 Route::get('/bulletins/bulletins', [App\Http\Controllers\BulletinController::class, 'bulletins'])->name('bulletins.bulletins');
 Route::resource('recettes', App\Http\Controllers\RecetteController::class);
+Route::resource('types-recettes', TypeRecetteController::class)->parameters([ 'types-recettes' => 'typesRecette',]);
 Route::middleware(['auth'])->group(function () {
     Route::resource('categories-recettes', CategorieRecetteController::class);
     Route::get('budgets-recettes/export-pdf', [BudgetRecettePdfController::class, 'export']) ->name('budgets-recettes.export-pdf');
@@ -422,7 +430,9 @@ Route::middleware(['auth'])->group(function () {
 Route::resource( 'categories-depenses', CategorieDepenseController::class);
 Route::resource('types-depenses', TypeDepenseController::class);
 Route::get('/depenses/live', [DepenseController::class, 'live'])->name('depenses.live');
-    Route::get('budgets-depenses/export-pdf', [BudgetDepensePdfController::class, 'export'])->name('budgets-depenses.export-pdf');
+   Route::get('/depenses/create', [App\Http\Controllers\DepenseController::class, 'create'])->name('depenses.create');
+Route::get('/depenses/nouvelle', DepenseManager::class)->name('depenses.nouvelle');
+   Route::get('budgets-depenses/export-pdf', [BudgetDepensePdfController::class, 'export'])->name('budgets-depenses.export-pdf');
 
 Route::middleware(['auth'])->group(function () {
     Route::get('depenses/{depense}/pieces-justificatives', [PieceJustificativeController::class, 'index'])->name('pieces-justificatives.index');

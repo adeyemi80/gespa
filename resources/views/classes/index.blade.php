@@ -1,4 +1,4 @@
-@extends('classes.layout')
+@extends('tableau.neutre')
 
 @section('content')
 <button 

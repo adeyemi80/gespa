@@ -18,6 +18,8 @@ class ThermalPrinterService
             'lp',
             '-d',
             $this->printer,
+            '-o',
+            'raw',
         ]);
 
         $process->setInput($content);

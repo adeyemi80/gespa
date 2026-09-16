@@ -1,191 +1,615 @@
-{{-- resources/views/recettes/index.blade.php --}}
+```blade
 @extends('tableau.neutre')
 
 @section('content')
-<button 
-    onclick="if (window.history.length > 1) { history.back(); } else { window.location.href='{{ route('tableau.accueil') }}'; }" 
-    class="btn btn-secondary">
-    ⬅️ Retour
-</button>
-<div class="container-fluid py-4">
 
-    {{-- En-tête --}}
-    <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
+<div class="container-fluid">
+
+    {{-- =========================
+        EN-TÊTE
+    ========================== --}}
+    <div class="d-flex justify-content-between align-items-center mb-4">
+
         <div>
-            <h1 class="h3 fw-bold mb-1 d-flex align-items-center gap-2">
-                <span class="d-inline-flex align-items-center justify-content-center rounded-3 bg-success-subtle text-success" style="width: 40px; height: 40px;">
-                    <i class="bi bi-cash-coin fs-5"></i>
-                </span>
-                Recettes
-            </h1>
-            <p class="text-muted mb-0 small">Liste des paiements et encaissements enregistrés</p>
+            <h2 class="mb-1">
+                <i class="bi bi-cash-stack"></i>
+                Gestion des recettes
+            </h2>
+
+            <p class="text-muted mb-0">
+                Liste des recettes enregistrées
+            </p>
         </div>
-        {{--<a href="{{ route('recettes.create') }}" class="btn btn-primary shadow-sm">
-            <i class="bi bi-plus-lg me-1"></i> Nouvelle recette
-        </a>--}}
+
+        <a href="{{ route('recettes.create') }}"
+           class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i>
+            Nouvelle recette
+        </a>
+
     </div>
 
-    @if (session('success'))
-        <div class="alert alert-success d-flex align-items-center shadow-sm border-0" role="alert">
-            <i class="bi bi-check-circle-fill me-2"></i>
+
+    {{-- =========================
+        MESSAGE DE SUCCÈS
+    ========================== --}}
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show">
+            <i class="bi bi-check-circle"></i>
             {{ session('success') }}
+
+            <button type="button"
+                    class="btn-close"
+                    data-bs-dismiss="alert">
+            </button>
         </div>
     @endif
 
-    {{-- Résumé rapide --}}
-    <div class="row g-3 mb-4">
-        <div class="col-6 col-lg-3">
-            <div class="card border-0 shadow-sm h-100" style="border-left: 4px solid #198754 !important;">
-                <div class="card-body">
-                    <p class="text-uppercase text-muted small mb-1 fw-semibold" style="font-size:.72rem; letter-spacing:.04em;">Total affiché</p>
-                    <p class="h5 fw-bold mb-0 text-success">
-                        {{ number_format($recettes->sum('montant_verse'), 0, ',', ' ') }} <span class="fs-6 text-muted">FCFA</span>
-                    </p>
-                </div>
-            </div>
-        </div>
-        <div class="col-6 col-lg-3">
-            <div class="card border-0 shadow-sm h-100" style="border-left: 4px solid #0dcaf0 !important;">
-                <div class="card-body">
-                    <p class="text-uppercase text-muted small mb-1 fw-semibold" style="font-size:.72rem; letter-spacing:.04em;">Nombre de recettes</p>
-                    <p class="h5 fw-bold mb-0 text-info">{{ $recettes->total() }}</p>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    {{-- Filtres --}}
-    <div class="card border-0 shadow-sm mb-4">
-        <div class="card-header bg-primary-subtle border-0 py-2">
-            <span class="text-primary-emphasis fw-semibold small"><i class="bi bi-funnel me-1"></i> Filtres</span>
+    {{-- =========================
+        ERREURS
+    ========================== --}}
+    @if($errors->any())
+
+        <div class="alert alert-danger alert-dismissible fade show">
+
+            <strong>
+                <i class="bi bi-exclamation-triangle"></i>
+                Une erreur est survenue
+            </strong>
+
+            <ul class="mb-0 mt-2">
+
+                @foreach($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+
+            </ul>
+
+            <button type="button"
+                    class="btn-close"
+                    data-bs-dismiss="alert">
+            </button>
+
         </div>
+
+    @endif
+
+
+    {{-- =========================
+        FILTRES
+    ========================== --}}
+    <div class="card shadow-sm mb-4">
+
+        <div class="card-header bg-light">
+
+            <strong>
+                <i class="bi bi-funnel"></i>
+                Filtres
+            </strong>
+
+        </div>
+
         <div class="card-body">
-            <form method="GET" action="{{ route('recettes.index') }}" class="row g-3 align-items-end">
-                <div class="col-auto">
-                    <label class="form-label small text-muted mb-1">Année</label>
-                    <select name="annee_id" class="form-select" onchange="this.form.submit()">
-                        <option value="">Toutes les années</option>
-                        @foreach ($annees as $annee)
-                            <option value="{{ $annee->id }}" @selected(request('annee_id') == $annee->id)>
-                                {{ $annee->nom }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
 
-                <div class="col-auto">
-                    <label class="form-label small text-muted mb-1">Catégorie</label>
-                    <select name="categorie_recette_id" class="form-select" onchange="this.form.submit()">
-                        <option value="">Toutes les catégories</option>
-                        @foreach ($categories as $categorie)
-                            <option value="{{ $categorie->id }}" @selected(request('categorie_recette_id') == $categorie->id)>
-                                {{ $categorie->nom }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
+            <form method="GET"
+                  action="{{ route('recettes.index') }}">
 
-                @if (request('annee_id') || request('categorie_recette_id'))
-                    <div class="col-auto">
-                        <a href="{{ route('recettes.index') }}" class="btn btn-outline-danger">
-                            <i class="bi bi-x-lg me-1"></i> Réinitialiser
-                        </a>
+                <div class="row g-3">
+
+                    {{-- Année --}}
+                    <div class="col-md-5">
+
+                        <label class="form-label">
+                            Année scolaire
+                        </label>
+
+                        <select name="annee_id"
+                                class="form-select">
+
+                            <option value="">
+                                Toutes les années
+                            </option>
+
+                            @foreach($annees as $annee)
+
+                                <option value="{{ $annee->id }}"
+                                    {{ request('annee_id') == $annee->id ? 'selected' : '' }}>
+
+                                    {{ $annee->libelle ?? $annee->nom ?? $annee->annee }}
+
+                                </option>
+
+                            @endforeach
+
+                        </select>
+
                     </div>
-                @endif
+
+
+                    {{-- Catégorie --}}
+                    <div class="col-md-5">
+
+                        <label class="form-label">
+                            Catégorie de recette
+                        </label>
+
+                        <select name="categorie_recette_id"
+                                class="form-select">
+
+                            <option value="">
+                                Toutes les catégories
+                            </option>
+
+                            @foreach($categories as $categorie)
+
+                                <option value="{{ $categorie->id }}"
+                                    {{ request('categorie_recette_id') == $categorie->id ? 'selected' : '' }}>
+
+                                    {{ $categorie->nom }}
+
+                                </option>
+
+                            @endforeach
+
+                        </select>
+
+                    </div>
+
+
+                    {{-- Boutons --}}
+                    <div class="col-md-2 d-flex align-items-end">
+
+                        <div class="d-flex gap-2 w-100">
+
+                            <button type="submit"
+                                    class="btn btn-primary flex-fill">
+
+                                <i class="bi bi-search"></i>
+                                Filtrer
+
+                            </button>
+
+                            <a href="{{ route('recettes.index') }}"
+                               class="btn btn-outline-secondary">
+
+                                <i class="bi bi-arrow-clockwise"></i>
+
+                            </a>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
             </form>
+
         </div>
+
     </div>
 
-    {{-- Tableau --}}
-    <div class="card border-0 shadow-sm">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead>
-                    <tr class="table-primary">
-                        <th class="ps-4 py-3 small text-uppercase" style="letter-spacing:.03em;">Date</th>
-                        <th class="py-3 small text-uppercase" style="letter-spacing:.03em;">Catégorie</th>
-                        <th class="py-3 small text-uppercase" style="letter-spacing:.03em;">Année</th>
-                        <th class="py-3 small text-uppercase" style="letter-spacing:.03em;">Mode paiement</th>
-                        <th class="py-3 small text-uppercase" style="letter-spacing:.03em;">N° reçu</th>
-                        <th class="py-3 text-end small text-uppercase" style="letter-spacing:.03em;">Montant versé</th>
-                        <th class="py-3 pe-4 text-end small text-uppercase" style="letter-spacing:.03em;">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse ($recettes as $recette)
-                        <tr>
-                            <td class="ps-4">
-                                <i class="bi bi-calendar3 text-muted me-1"></i>{{ $recette->date_paiement->format('d/m/Y') }}
-                            </td>
-                            <td>
-                                @if ($recette->categorieRecette)
-                                    <span class="badge bg-primary-subtle text-primary-emphasis fw-semibold">
-                                        {{ $recette->categorieRecette->nom }}
-                                    </span>
-                                @else
-                                    <span class="text-muted">—</span>
-                                @endif
-                            </td>
-                            <td>
-                                <span class="badge bg-info-subtle text-info-emphasis fw-semibold">
-                                    {{ $recette->annee?->nom ?? '—' }}
-                                </span>
-                            </td>
-                            <td>
-                                @php
-                                    $modeColors = [
-                                        'Espèces' => 'success',
-                                        'Espèce' => 'success',
-                                        'Mobile Money' => 'warning',
-                                        'Chèque' => 'secondary',
-                                    ];
-                                    $couleur = $modeColors[$recette->mode_paiement] ?? 'secondary';
-                                @endphp
-                                @if ($recette->mode_paiement)
-                                    <span class="badge bg-{{ $couleur }}-subtle text-{{ $couleur }}-emphasis">
-                                        {{ $recette->mode_paiement }}
-                                    </span>
-                                @else
-                                    <span class="text-muted">—</span>
-                                @endif
-                            </td>
-                            <td class="text-muted small">{{ $recette->numero_recu ?? '—' }}</td>
-                            <td class="text-end fw-bold text-success">
-                                {{ number_format($recette->montant_verse, 2, ',', ' ') }}
-                            </td>
-                            <td class="pe-4 text-end">
-                                <div class="btn-group btn-group-sm">
-                                    <a href="{{ route('recettes.show', $recette) }}" class="btn btn-outline-primary" title="Voir">
-                                        <i class="bi bi-eye"></i>
-                                    </a>
-                                    <a href="{{ route('recettes.edit', $recette) }}" class="btn btn-outline-warning" title="Modifier">
-                                        <i class="bi bi-pencil"></i>
-                                    </a>
-                                    <form action="{{ route('recettes.destroy', $recette) }}" method="POST" class="d-inline"
-                                          onsubmit="return confirm('Supprimer cette recette ?');">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-outline-danger" title="Supprimer">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="7" class="text-center text-muted py-5">
-                                <i class="bi bi-inbox fs-2 d-block mb-2 opacity-50"></i>
-                                Aucune recette trouvée.
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
+
+    {{-- =========================
+        TABLEAU
+    ========================== --}}
+    <div class="card shadow-sm">
+
+        <div class="card-header d-flex justify-content-between align-items-center">
+
+            <strong>
+                <i class="bi bi-list-ul"></i>
+                Liste des recettes
+            </strong>
+
+            <span class="badge bg-primary">
+
+                {{ $recettes->total() }}
+                recette(s)
+
+            </span>
+
         </div>
+
+
+        <div class="card-body p-0">
+
+            @if($recettes->count())
+
+                <div class="table-responsive">
+
+                    <table class="table table-hover table-bordered align-middle mb-0">
+
+                        <thead class="table-dark">
+
+                            <tr>
+
+                                <th width="50">
+                                    #
+                                </th>
+
+                                <th>
+                                    Date
+                                </th>
+
+                                <th>
+                                    N° reçu
+                                </th>
+
+                                <th>
+                                    Élève / Inscription
+                                </th>
+
+                                <th>
+                                    Catégorie
+                                </th>
+
+                                <th class="text-end">
+                                    Montant
+                                </th>
+
+                                <th>
+                                    Mode
+                                </th>
+
+                                <th>
+                                    Origine
+                                </th>
+
+                                <th>
+                                    Année
+                                </th>
+
+                                <th width="140"
+                                    class="text-center">
+                                    Actions
+                                </th>
+
+                            </tr>
+
+                        </thead>
+
+
+                        <tbody>
+
+                            @foreach($recettes as $recette)
+
+                                <tr>
+
+                                    {{-- ID --}}
+                                    <td>
+                                        {{ $recette->id }}
+                                    </td>
+
+
+                                    {{-- DATE --}}
+                                    <td>
+
+                                        {{ $recette->date_paiement
+                                            ? \Carbon\Carbon::parse($recette->date_paiement)->format('d/m/Y')
+                                            : '-' }}
+
+                                    </td>
+
+
+                                    {{-- NUMÉRO REÇU --}}
+                                    <td>
+
+                                        <span class="fw-semibold">
+
+                                            {{ $recette->numero_recu ?? '-' }}
+
+                                        </span>
+
+                                    </td>
+
+
+                                    {{-- INSCRIPTION --}}
+                                    <td>
+
+                                        @if($recette->inscription)
+
+                                            @php
+                                                $eleve = $recette->inscription->eleve ?? null;
+                                            @endphp
+
+                                            @if($eleve)
+
+                                                <div class="fw-semibold">
+
+                                                    {{ $eleve->nom }}
+                                                    {{ $eleve->prenom }}
+
+                                                </div>
+
+                                                <small class="text-muted">
+
+                                                    Matricule :
+                                                    {{ $eleve->matricule ?? '-' }}
+
+                                                </small>
+
+                                            @else
+
+                                                <span class="text-muted">
+                                                    Inscription #{{ $recette->inscription_id }}
+                                                </span>
+
+                                            @endif
+
+                                        @else
+
+                                            <span class="badge bg-secondary">
+
+                                                Achat
+
+                                            </span>
+
+                                        @endif
+
+                                    </td>
+
+
+                                    {{-- CATÉGORIE --}}
+                                    <td>
+
+                                        @if($recette->categorieRecette)
+
+                                            <span class="badge bg-info text-dark">
+
+                                                {{ $recette->categorieRecette->nom }}
+
+                                            </span>
+
+                                        @else
+
+                                            <span class="text-muted">
+                                                -
+                                            </span>
+
+                                        @endif
+
+                                    </td>
+
+
+                                    {{-- MONTANT --}}
+                                    <td class="text-end">
+
+                                        <strong class="text-success">
+
+                                            {{ number_format(
+                                                (float) $recette->montant_verse,
+                                                2,
+                                                ',',
+                                                ' '
+                                            ) }}
+
+                                        </strong>
+
+                                        <small>
+                                            FCFA
+                                        </small>
+
+                                    </td>
+
+
+                                    {{-- MODE DE PAIEMENT --}}
+                                    <td>
+
+                                        @php
+                                            $mode = strtolower(trim($recette->mode_paiement ?? ''));
+                                        @endphp
+
+                                        @if($mode === 'espèces' || $mode === 'especes')
+
+                                            <span class="badge bg-success">
+                                                <i class="bi bi-cash"></i>
+                                                {{ $recette->mode_paiement }}
+                                            </span>
+
+                                        @elseif($mode === 'mobile money')
+
+                                            <span class="badge bg-primary">
+                                                <i class="bi bi-phone"></i>
+                                                {{ $recette->mode_paiement }}
+                                            </span>
+
+                                        @elseif($mode === 'chèque' || $mode === 'cheque')
+
+                                            <span class="badge bg-warning text-dark">
+                                                <i class="bi bi-receipt"></i>
+                                                {{ $recette->mode_paiement }}
+                                            </span>
+
+                                        @else
+
+                                            <span class="badge bg-secondary">
+
+                                                {{ $recette->mode_paiement ?? '-' }}
+
+                                            </span>
+
+                                        @endif
+
+                                    </td>
+
+
+                                    {{-- ORIGINE --}}
+                                    <td>
+
+                                        @if($recette->paiement_id)
+
+                                            <span class="badge bg-primary">
+
+                                                <i class="bi bi-mortarboard"></i>
+                                                Scolarité
+
+                                            </span>
+
+                                            <br>
+
+                                            <small class="text-muted">
+
+                                                Paiement #{{ $recette->paiement_id }}
+
+                                            </small>
+
+                                        @elseif($recette->paiement_achat_id)
+
+                                            <span class="badge bg-warning text-dark">
+
+                                                <i class="bi bi-cart"></i>
+                                                Achat
+
+                                            </span>
+
+                                            <br>
+
+                                            <small class="text-muted">
+
+                                                Paiement achat
+                                                #{{ $recette->paiement_achat_id }}
+
+                                            </small>
+
+                                        @else
+
+                                            <span class="badge bg-secondary">
+
+                                                Inconnue
+
+                                            </span>
+
+                                        @endif
+
+                                    </td>
+
+
+                                    {{-- ANNÉE --}}
+                                    <td>
+
+                                        @if($recette->annee)
+
+                                            {{ $recette->annee->libelle
+                                                ?? $recette->annee->nom
+                                                ?? $recette->annee->annee
+                                                ?? $recette->annee_id }}
+
+                                        @else
+
+                                            <span class="text-muted">
+                                                -
+                                            </span>
+
+                                        @endif
+
+                                    </td>
+
+
+                                    {{-- ACTIONS --}}
+                                    <td>
+
+                                        <div class="d-flex justify-content-center gap-1">
+
+                                            {{-- Voir --}}
+                                            <a href="{{ route('recettes.show', $recette) }}"
+                                               class="btn btn-sm btn-outline-info"
+                                               title="Voir">
+
+                                                <i class="bi bi-eye"></i>
+
+                                            </a>
+
+
+                                            {{-- Modifier --}}
+                                           {{-- <a href="{{ route('recettes.edit', $recette) }}"
+                                               class="btn btn-sm btn-outline-primary"
+                                               title="Modifier">
+
+                                                <i class="bi bi-pencil"></i>
+
+                                            </a>--}}
+
+
+                                            {{-- Supprimer --}}
+                                            {{--<form action="{{ route('recettes.destroy', $recette) }}"
+                                                  method="POST"
+                                                  class="d-inline"
+                                                  onsubmit="return confirm('Voulez-vous vraiment supprimer cette recette ? Cette opération peut avoir des conséquences sur le paiement associé.');">
+
+                                                @csrf
+                                                @method('DELETE')
+
+                                                <button type="submit"
+                                                        class="btn btn-sm btn-outline-danger"
+                                                        title="Supprimer">
+
+                                                    <i class="bi bi-trash"></i>
+
+                                                </button>
+
+                                            </form>--}}
+
+                                        </div>
+
+                                    </td>
+
+                                </tr>
+
+                            @endforeach
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            @else
+
+                {{-- AUCUNE RECETTE --}}
+                <div class="text-center py-5">
+
+                    <i class="bi bi-inbox display-4 text-muted"></i>
+
+                    <h5 class="mt-3">
+                        Aucune recette trouvée
+                    </h5>
+
+                    <p class="text-muted">
+                        Aucune recette ne correspond aux critères sélectionnés.
+                    </p>
+
+                    <a href="{{ route('recettes.create') }}"
+                       class="btn btn-primary">
+
+                        <i class="bi bi-plus-circle"></i>
+                        Ajouter une recette
+
+                    </a>
+
+                </div>
+
+            @endif
+
+        </div>
+
+
+        {{-- =========================
+            PAGINATION
+        ========================== --}}
+        @if($recettes->hasPages())
+
+            <div class="card-footer">
+
+                {{ $recettes->links() }}
+
+            </div>
+
+        @endif
+
     </div>
-    <div class="mt-4 d-flex justify-content-center">
-        {{ $recettes->links() }}
-    </div>
+
 </div>
+
 @endsection
+```

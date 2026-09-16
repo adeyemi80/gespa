@@ -32,7 +32,14 @@ class PaiementAchat extends Model
             Inscription::class
         );
     }
-
+    
+    public function recette()
+{
+    return $this->hasOne(
+        Recette::class,
+        'paiement_achat_id'
+    );
+}
     public function frais()
     {
         return $this->belongsTo(

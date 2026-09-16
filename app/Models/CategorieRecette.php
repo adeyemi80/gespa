@@ -29,6 +29,15 @@ class CategorieRecette extends Model
         return $this->hasMany(BudgetRecette::class, 'categorie_id');
     }
 
+    public function typesRecettes()
+{
+    return $this->hasMany(
+        TypeRecette::class,
+        'categories_recettes_id'
+    );
+}
+
+
     public function scopeActif($query)
     {
         return $query->where('actif', true);

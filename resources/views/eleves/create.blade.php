@@ -139,23 +139,29 @@
                                 </select>
                             </div>
 
-          <div class="mb-3 row">
-                        <label for="annee_id" class="col-md-4 col-form-label text-md-end">Année Scolaire</label>
-                        <div class="col-md-6">
-                            <select name="annee_id" id="anneeSelect" class="form-select @error('annee_id') is-invalid @enderror" required>
-                                <option value="">-- Choisir une année --</option>
-                                @foreach($annees as $annee)
-                                    <option value="{{ $annee->id }}" {{ old('annee_id') == $annee->id ? 'selected' : '' }}>
-                                        {{ $annee->nom }}
-                                    </option>
-                                @endforeach
-                            </select>
-                            @error('annee_id')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-                    </div>
+         <div class="mb-3">
+    <label for="annee_id" class="form-label">
+        Année scolaire
+    </label>
 
+    <select name="annee_id" id="annee_id" class="form-select" required>
+        <option value="">-- Sélectionner une année scolaire --</option>
+
+        @foreach($annees as $annee)
+            <option value="{{ $annee->id }}"
+                {{ old('annee_id', $anneeEnCours?->id) == $annee->id ? 'selected' : '' }}>
+                {{ $annee->nom }}
+                @if($annee->en_cours)
+                    — Année en cours
+                @endif
+            </option>
+        @endforeach
+    </select>
+
+    @error('annee_id')
+        <div class="text-danger">{{ $message }}</div>
+    @enderror
+</div>
                         {{-- Bouton --}}
                         <div class="text-end">
                             <button type="submit" class="btn btn-success btn-lg px-5">

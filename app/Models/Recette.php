@@ -1,17 +1,13 @@
 <?php
-// app/Models/Recette.php
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Recette extends Model
 {
-    use HasFactory;
-
-    public $timestamps = true;
+    protected $table = 'recettes';
 
     protected $fillable = [
         'date_paiement',
@@ -22,6 +18,7 @@ class Recette extends Model
         'numero_recu',
         'categorie_recette_id',
         'annee_id',
+        'paiement_achat_id',
     ];
 
     protected $casts = [
@@ -31,21 +28,38 @@ class Recette extends Model
 
     public function paiement(): BelongsTo
     {
-        return $this->belongsTo(Paiement::class);
+        return $this->belongsTo(Paiement::class, 'paiement_id');
+    }
+
+    public function paiementAchat(): BelongsTo
+    {
+        return $this->belongsTo(
+            PaiementAchat::class,
+            'paiement_achat_id'
+        );
     }
 
     public function inscription(): BelongsTo
     {
-        return $this->belongsTo(Inscription::class);
+        return $this->belongsTo(
+            Inscription::class,
+            'inscription_id'
+        );
     }
 
     public function categorieRecette(): BelongsTo
     {
-        return $this->belongsTo(CategorieRecette::class);
+        return $this->belongsTo(
+            CategorieRecette::class,
+            'categorie_recette_id'
+        );
     }
 
     public function annee(): BelongsTo
     {
-        return $this->belongsTo(Annee::class);
+        return $this->belongsTo(
+            Annee::class,
+            'annee_id'
+        );
     }
 }

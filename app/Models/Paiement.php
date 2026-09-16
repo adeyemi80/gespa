@@ -18,7 +18,9 @@ class Paiement extends Model
          'montant_total',
          'mode_paiement',
          'numero_recu',
-         'reference'
+         'reference',
+         'user_id',
+         
     ];
 protected $casts = [
     'date_paiement' => 'date',
@@ -36,6 +38,10 @@ protected $casts = [
     {
         return $this->hasOne(Recette::class);
     }
+    public function user()
+{
+    return $this->belongsTo(User::class);
+}
 
     // Créer automatiquement une recette après paiement
   

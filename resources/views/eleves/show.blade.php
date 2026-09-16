@@ -34,6 +34,7 @@
                     </li>
                     <li class="list-group-item"><strong>Lieu de naissance :</strong> {{ $eleve->lieu_naissance }}</li>
                     <li class="list-group-item"><strong>Matricule :</strong> {{ $eleve->matricule }}</li>
+                     <li class="list-group-item"><strong>Numéro Educmaster :</strong> {{ $eleve->numeducmaster }}</li>
                 </ul>
 
                 <div class="mt-3">

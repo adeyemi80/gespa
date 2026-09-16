@@ -1,129 +1,292 @@
 @extends('tableau.neutre')
 
 @section('content')
-<button 
-    onclick="if (window.history.length > 1) { history.back(); } else { window.location.href='{{ route('tableau.accueil') }}'; }" 
-    class="btn btn-secondary">
-    ⬅️ Retour
-</button>
+
 <div class="container py-5">
-    <h3 class="mb-4 text-warning">✏️ Modifier le Paiement</h3>
 
-    <div class="card shadow border-0">
-        <div class="card-body">
-            <form action="{{ route('paiements.update', $paiement->id) }}"
-                  method="POST"
-                  class="row g-3">
-                @csrf
-                @method('PUT')
- {{-- Messages --}}
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
-        </div>
-    @endif
-    @if(session('error'))
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            {{ session('error') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
-        </div>
-    @endif
-                {{-- Année (verrouillée) --}}
-                <div class="col-md-6">
-                    <label class="form-label">Année scolaire</label>
-                    <select class="form-select" disabled>
-    <option selected>
-        {{ $paiement->inscription->annee->nom }}
-    </option>
-</select>
-<input type="hidden" name="annee_id"
-       value="{{ $paiement->inscription->annee_id }}">
+```
+{{-- Retour --}}
+<div class="mb-3">
+    <button
+        type="button"
+        onclick="if (window.history.length > 1) { history.back(); } else { window.location.href='{{ route('tableau.accueil') }}'; }"
+        class="btn btn-secondary">
+        ⬅️ Retour
+    </button>
+</div>
+
+<h3 class="mb-4 text-warning">
+    ✏️ Modifier le Paiement
+</h3>
+
+{{-- Messages --}}
+@if(session('success'))
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        {{ session('success') }}
+        <button type="button"
+                class="btn-close"
+                data-bs-dismiss="alert"
+                aria-label="Fermer"></button>
+    </div>
+@endif
+
+@if(session('error'))
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        {{ session('error') }}
+        <button type="button"
+                class="btn-close"
+                data-bs-dismiss="alert"
+                aria-label="Fermer"></button>
+    </div>
+@endif
+
+@if($errors->any())
+    <div class="alert alert-danger">
+        <strong>Veuillez corriger les erreurs suivantes :</strong>
+        <ul class="mb-0 mt-2">
+            @foreach($errors->all() as $error)
+                <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+    </div>
+@endif
+
+<div class="card shadow border-0">
+
+    <div class="card-header bg-warning text-dark">
+        <strong>Informations du paiement</strong>
+    </div>
+
+    <div class="card-body">
+
+        <form action="{{ route('paiements.update', $paiement->id) }}"
+              method="POST"
+              class="row g-3">
+
+            @csrf
+            @method('PUT')
+
+            {{-- ============================= --}}
+            {{-- INFORMATIONS NON MODIFIABLES --}}
+            {{-- ============================= --}}
+
+            {{-- Numéro de reçu --}}
+            <div class="col-md-6">
+                <label class="form-label fw-bold">
+                    🧾 Numéro de reçu
+                </label>
+
+                <input type="text"
+                       class="form-control bg-light"
+                       value="{{ $paiement->numero_recu ?? '—' }}"
+                       readonly>
+            </div>
+
+            {{-- Année scolaire --}}
+            <div class="col-md-6">
+                <label class="form-label fw-bold">
+                    📅 Année scolaire
+                </label>
+
+                <input type="text"
+                       class="form-control bg-light"
+                       value="{{ optional(optional($paiement->inscription)->annee)->nom ?? '—' }}"
+                       readonly>
+            </div>
+
+            {{-- Classe --}}
+            <div class="col-md-6">
+                <label class="form-label fw-bold">
+                    🏫 Classe
+                </label>
+
+                <input type="text"
+                       class="form-control bg-light"
+                       value="{{ optional(optional($paiement->inscription)->classe)->nom ?? '—' }}"
+                       readonly>
+            </div>
+
+            {{-- Élève --}}
+            <div class="col-md-6">
+                <label class="form-label fw-bold">
+                    👨‍🎓 Élève
+                </label>
+
+                <input type="text"
+                       class="form-control bg-light"
+                       value="{{ optional(optional($paiement->inscription)->eleve)->nom ?? '' }}
+                              {{ optional(optional($paiement->inscription)->eleve)->prenom ?? '' }}"
+                       readonly>
+            </div>
+
+            {{-- Matricule --}}
+            <div class="col-md-6">
+                <label class="form-label fw-bold">
+                    🔖 Matricule
+                </label>
+
+                <input type="text"
+                       class="form-control bg-light"
+                       value="{{ optional(optional($paiement->inscription)->eleve)->matricule ?? '—' }}"
+                       readonly>
+            </div>
+
+            {{-- Frais --}}
+            <div class="col-md-6">
+                <label class="form-label fw-bold">
+                    📌 Frais concerné
+                </label>
+
+                <input type="text"
+                       class="form-control bg-light"
+                       value="{{ optional($paiement->frais)->nom
+                                ?? optional($paiement->frais)->description
+                                ?? '—' }}"
+                       readonly>
+            </div>
+
+            {{-- ============================= --}}
+            {{-- DONNÉES MODIFIABLES --}}
+            {{-- ============================= --}}
+
+            {{-- Montant --}}
+            <div class="col-md-6">
+                <label class="form-label fw-bold">
+                    💰 Montant versé
+                </label>
+
+                <input type="number"
+                       name="montant_verse"
+                       class="form-control"
+                       value="{{ old('montant_verse', $paiement->montant_verse) }}"
+                       min="0"
+                       step="0.01"
+                       required>
+
+                <small class="text-muted">
+                    Montant actuellement enregistré :
+                    <strong>
+                        {{ number_format($paiement->montant_verse, 0, ',', ' ') }} F
+                    </strong>
+                </small>
+            </div>
+
+            {{-- Mode de paiement --}}
+            <div class="col-md-6">
+                <label class="form-label fw-bold">
+                    💳 Mode de paiement
+                </label>
+
+                <select name="mode_paiement"
+                        class="form-select"
+                        required>
+
+                    @foreach([
+                        'Espèce',
+                        'Mobile Money',
+                        'Chèque',
+                        'Virement Bancaire'
+                    ] as $mode)
+
+                        <option value="{{ $mode }}"
+                            {{ old('mode_paiement', $paiement->mode_paiement) == $mode ? 'selected' : '' }}>
+                            {{ $mode }}
+                        </option>
+
+                    @endforeach
+
+                </select>
+            </div>
+
+            {{-- Date --}}
+            <div class="col-md-6">
+                <label class="form-label fw-bold">
+                    📅 Date de paiement
+                </label>
+
+                <input type="date"
+                       name="date_paiement"
+                       class="form-control"
+                       value="{{ old(
+                           'date_paiement',
+                           $paiement->date_paiement
+                               ? \Carbon\Carbon::parse($paiement->date_paiement)->format('Y-m-d')
+                               : ''
+                       ) }}"
+                       required>
+            </div>
+
+            {{-- ============================= --}}
+            {{-- APERÇU DU PAIEMENT --}}
+            {{-- ============================= --}}
+
+            <div class="col-12 mt-4">
+
+                <div class="alert alert-light border">
+
+                    <h6 class="fw-bold mb-3">
+                        📋 Données enregistrées actuellement
+                    </h6>
+
+                    <div class="row">
+
+                        <div class="col-md-4 mb-2">
+                            <span class="text-muted">Montant :</span><br>
+                            <strong>
+                                {{ number_format($paiement->montant_verse, 0, ',', ' ') }} F
+                            </strong>
+                        </div>
+
+                        <div class="col-md-4 mb-2">
+                            <span class="text-muted">Mode :</span><br>
+                            <strong>
+                                {{ $paiement->mode_paiement ?? '—' }}
+                            </strong>
+                        </div>
+
+                        <div class="col-md-4 mb-2">
+                            <span class="text-muted">Date :</span><br>
+                            <strong>
+                                {{ $paiement->date_paiement
+                                    ? \Carbon\Carbon::parse($paiement->date_paiement)->format('d/m/Y')
+                                    : '—' }}
+                            </strong>
+                        </div>
+
+                    </div>
 
                 </div>
 
-                {{-- Classe (verrouillée) --}}
-                <div class="col-md-6">
-                    <label class="form-label">Classe</label>
-                    <select class="form-select" disabled>
-                        @foreach($classes as $classe)
-                            <option {{ $paiement->classe_id == $classe->id ? 'selected' : '' }}>
-                                {{ $classe->nom }}
-                            </option>
-                        @endforeach
-                    </select>
-                    <input type="hidden" name="classe_id" value="{{ $paiement->inscription->classe_id }}">
-                </div>
+            </div>
 
-                {{-- Élève (verrouillé) --}}
-                <div class="col-md-6">
-                    <label class="form-label">👨‍🎓 Élève</label>
-                    <select class="form-select" disabled>
-                        @foreach($inscriptions as $insc)
-                            <option {{ $paiement->inscription_id == $insc->id ? 'selected' : '' }}>
-                                {{ $insc->eleve->nom }} {{ $insc->eleve->prenom }}
-                            </option>
-                        @endforeach
-                    </select>
-                    <input type="hidden" name="inscription_id" value="{{ $paiement->inscription_id }}">
-                </div>
+            {{-- ============================= --}}
+            {{-- ACTIONS --}}
+            {{-- ============================= --}}
 
-                {{-- Frais (verrouillé) --}}
-                <div class="col-md-6">
-                    <label class="form-label">📌 Frais</label>
-                    <select class="form-select" disabled>
-                        @foreach($frais as $item)
-                            <option {{ $paiement->frais_id == $item->id ? 'selected' : '' }}>
-                                {{ $item->description }}
-                            </option>
-                        @endforeach
-                    </select>
-                    <input type="hidden" name="frais_id" value="{{ $paiement->frais_id }}">
-                </div>
+            <div class="col-12 d-flex justify-content-between mt-3">
 
-                {{-- Montant --}}
-                <div class="col-md-6">
-                    <label class="form-label">💰 Montant versé</label>
-                    <input type="number"
-                           name="montant_verse"
-                           class="form-control"
-                           value="{{ $paiement->montant_verse }}"
-                           min="0"
-                           required>
-                </div>
+                <button
+                    type="button"
+                    onclick="if (window.history.length > 1) { history.back(); } else { window.location.href='{{ route('tableau.accueil') }}'; }"
+                    class="btn btn-secondary">
 
-                {{-- Mode --}}
-                <div class="col-md-6">
-                    <label class="form-label">Mode de paiement</label>
-                    <select name="mode_paiement" class="form-select" required>
-                        @foreach(['Espèce','Mobile Money','Chèque','Virement Bancaire'] as $mode)
-                            <option value="{{ $mode }}"
-                                {{ $paiement->mode_paiement == $mode ? 'selected' : '' }}>
-                                {{ $mode }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
+                    ❌ Annuler
+                </button>
 
-                {{-- Date --}}
-                <div class="col-md-6">
-                    <label class="form-label">Date de paiement</label>
-                    <input type="date"
-                           name="date_paiement"
-                           class="form-control"
-                           value="{{ $paiement->date_paiement->toDateString() }}"
-                           required>
-                </div>
+                <button type="submit"
+                        class="btn btn-warning btn-lg px-5">
 
-                {{-- Actions --}}
-                <div class="col-12 d-grid mt-3">
-                    <button class="btn btn-warning btn-lg">
-                        💾 Mettre à jour
-                    </button>
-                </div>
+                    💾 Mettre à jour
+                </button>
 
-            </form>
-        </div>
+            </div>
+
+        </form>
+
     </div>
 </div>
+```
+
+</div>
+
 @endsection

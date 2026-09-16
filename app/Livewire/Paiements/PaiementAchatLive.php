@@ -5,103 +5,98 @@ namespace App\Livewire\Paiements;
 use App\Models\Annee;
 use App\Models\Classe;
 use App\Models\Cycle;
-use App\Models\CategorieRecette;
 use App\Models\Frais;
 use App\Models\Inscription;
 use App\Models\PaiementAchat;
-use App\Services\RecuThermiqueService;
-use App\Services\ThermalPrinterService;
+use App\Models\Recette;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Livewire\Component;
+use App\Services\RecuThermiqueService;
+use App\Services\ThermalPrinterService;
 
 class PaiementAchatLive extends Component
 {
     /*
     |--------------------------------------------------------------------------
-    | ANNÉE / CLASSE
+    | PROPRIÉTÉS TYPÉES
     |--------------------------------------------------------------------------
     */
 
-    public $anneeId = null;
-    public $cycleId = null;
-    public $classeId = null;
+    // Années / Cycle / Classe
+    public ?int $anneeId = null;
+    public ?int $cycleId = null;
+    public ?int $classeId = null;
 
-    public $annees = [];
-    public $cycles = [];
-    public $classes = [];
-    public $inscriptions = [];
+    public array $annees = [];
+    public array $cycles = [];
+    public array $classes = [];
 
+    // Type d'élève
+    public ?string $typeEleve = null;
 
-    /*
-    |--------------------------------------------------------------------------
-    | ACHETEUR
-    |--------------------------------------------------------------------------
-    */
+    // Ancien élève
+    public array $inscriptions = [];
+    public ?int $inscriptionId = null;
 
-    public $inscriptionId = null;
+    // Nouvel élève
+    public array $nouveauEleve = [
+        'nom' => '',
+        'prenom' => '',
+        'date_naissance' => '',
+        'lieu_naissance' => '',
+        'sexe' => '',
+        'telephone' => '',
+        'adresse' => '',
+    ];
 
-    public $nom = '';
-    public $prenom = '';
-    public $telephone = '';
+    public ?int $nouvelEleveId = null;
 
+    // Acheteur
+    public string $nom = '';
+    public string $prenom = '';
+    public string $telephone = '';
 
-    /*
-    |--------------------------------------------------------------------------
-    | CATÉGORIES
-    |--------------------------------------------------------------------------
-    */
+    // Frais
+    public array $fraisDisponibles = [];
+    public array $achats = [];
 
-    public $categoriesRecettes = [];
+    // Paiement
+    public $montantPaye = '';
+    public string $modePaiement = '';
+    public string $datePaiement = '';
 
-    /*
-     * Plusieurs catégories peuvent être sélectionnées
-     */
-    public $categoriesSelectionnees = [];
+    // Totaux
+    public float $totalFrais = 0;
+    public float $totalDejaPaye = 0;
+    public float $resteAvantPaiement = 0;
+    public float $resteApresPaiement = 0;
 
+    // Reçu
+    public ?string $numeroRecuGenere = null;
+    public string $successMessage = '';
 
-    /*
-    |--------------------------------------------------------------------------
-    | FRAIS / ARTICLES
-    |--------------------------------------------------------------------------
-    */
+    // Validation rules
+    protected array $fraisRules = [
+        'anneeId' => 'required|exists:annees,id',
+        'cycleId' => 'required|exists:cycles,id',
+        'classeId' => 'required|exists:classes,id',
+        'typeEleve' => 'required|in:ancien,nouveau',
+        'modePaiement' => 'required|string|max:50',
+        'datePaiement' => 'required|date',
+        'montantPaye' => 'required|numeric|min:0.01',
+    ];
 
-    public $fraisDisponibles = [];
-
-    /*
-     * Articles sélectionnés dans le panier
-     */
-    public $achats = [];
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | PAIEMENT
-    |--------------------------------------------------------------------------
-    */
-
-    public $modePaiement = '';
-    public $datePaiement = '';
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | TOTAL
-    |--------------------------------------------------------------------------
-    */
-
-    public $total = 0;
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | MESSAGES
-    |--------------------------------------------------------------------------
-    */
-
-    public $successMessage = '';
-    public $numeroRecuGenere = null;
+    protected array $nouveauEleveRules = [
+        'nouveauEleve.nom' => 'required|string|max:255',
+        'nouveauEleve.prenom' => 'required|string|max:255',
+        'nouveauEleve.date_naissance' => 'nullable|date',
+        'nouveauEleve.lieu_naissance' => 'nullable|string|max:255',
+        'nouveauEleve.sexe' => 'nullable|string|max:20',
+        'nouveauEleve.telephone' => 'nullable|string|max:30',
+        'nouveauEleve.adresse' => 'nullable|string|max:255',
+    ];
 
 
     /*
@@ -110,75 +105,52 @@ class PaiementAchatLive extends Component
     |--------------------------------------------------------------------------
     */
 
-    public function mount()
-    {
-        $this->datePaiement = now()->format('Y-m-d');
+        public function mount(): void
+{
+    $this->datePaiement = now()->format('Y-m-d');
 
-        /*
-         * Années
-         */
-        $this->annees = Annee::orderByDesc('id')->get();
-        /*
-         * Cycles
-         */
-        $this->cycles = Cycle::orderBy('nom')->get();
+    $this->annees = Annee::orderByDesc('id')
+        ->get()
+        ->toArray();
 
-        /*
-         * Année en cours
-         */
-        $annee = Annee::where('en_cours', true)->first();
+    $this->cycles = Cycle::orderBy('nom')
+        ->get()
+        ->toArray();
 
-        if ($annee) {
-            $this->anneeId = $annee->id;
-        }
+    $annee = Annee::where('en_cours', true)->first();
 
-        /*
-         * Catégories destinées aux achats
-         */
-        $this->chargerCategories();
+    if ($annee) {
+        $this->anneeId = $annee->id;
     }
 
+    $this->chargerClasses();
+}
 
     /*
     |--------------------------------------------------------------------------
-    | CATÉGORIES D'ACHAT
+    | ANNÉE
     |--------------------------------------------------------------------------
     */
 
-    private function chargerCategories()
+    public function updatedAnneeId(?int $value): void
     {
-        $this->categoriesRecettes = CategorieRecette::query()
-            ->where('actif', true)
-            ->where('est_achat', true)
-            ->orderBy('nom')
-            ->get()
-            ->toArray();
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | CHANGEMENT D'ANNÉE
-    |--------------------------------------------------------------------------
-    */
-
-    public function updatedAnneeId($value)
-    {
-        $this->classeId = null;
-        $this->inscriptionId = null;
-
-        $this->classes = [];
-        $this->inscriptions = [];
-
-        $this->viderFraisEtPanier();
-
         if (!$value) {
+            $this->resetApresSelection();
             return;
         }
 
-        if ($this->cycleId) {
-            $this->chargerClasses();
+        // Valider que l'année existe
+        if (!Annee::find($value)) {
+            $this->addError('anneeId', 'Année invalide.');
+            $this->anneeId = null;
+            return;
         }
+
+        $this->resetApresSelection();
+        $this->cycleId = null;
+        $this->classeId = null;
+        $this->classes = [];
+        $this->inscriptions = [];
     }
 
 
@@ -188,20 +160,22 @@ class PaiementAchatLive extends Component
     |--------------------------------------------------------------------------
     */
 
-    public function updatedCycleId($value)
+    public function updatedCycleId(?int $value): void
     {
-        $this->classeId = null;
-        $this->inscriptionId = null;
-
-        $this->classes = [];
-        $this->inscriptions = [];
-
-        $this->viderFraisEtPanier();
-
-        if (!$value) {
+        if (!$value || !$this->anneeId) {
+            $this->resetApresSelection();
             return;
         }
 
+        // Valider que le cycle existe
+        if (!Cycle::find($value)) {
+            $this->addError('cycleId', 'Cycle invalide.');
+            $this->cycleId = null;
+            return;
+        }
+
+        $this->resetApresSelection();
+        $this->classeId = null;
         $this->chargerClasses();
     }
 
@@ -212,22 +186,32 @@ class PaiementAchatLive extends Component
     |--------------------------------------------------------------------------
     */
 
-    private function chargerClasses()
-    {
-        if (!$this->cycleId) {
-            return;
-        }
-
-        /*
-         * Pas de scope orderByNiveau()
-         * pour éviter une erreur si ce scope n'existe pas.
-         */
-        $this->classes = Classe::query()
-            ->where('cycle_id', $this->cycleId)
-            ->orderBy('nom')
-            ->get()
-            ->toArray();
+private function chargerClasses()
+{
+    if (!$this->cycleId || !$this->anneeId) {
+        $this->classes = [];
+        return;
     }
+
+    $this->classes = Classe::query()
+        ->where('cycle_id', $this->cycleId)
+        ->whereHas('annees', function ($query) {
+            $query->where('annees.id', $this->anneeId);
+        })
+        ->orderBy('nom')
+        ->get()
+        ->map(function ($classe) {
+            return [
+                'id' => $classe->id,
+                'nom' => $classe->nom,
+                'niveau' => $classe->niveau,
+                'cycle_id' => $classe->cycle_id,
+            ];
+        })
+        ->values()
+        ->toArray();
+}
+
 
 
     /*
@@ -236,30 +220,33 @@ class PaiementAchatLive extends Component
     |--------------------------------------------------------------------------
     */
 
-    public function updatedClasseId($value)
+    public function updatedClasseId(?int $value): void
     {
-        $this->inscriptionId = null;
-
-        $this->inscriptions = [];
-
-        /*
-         * On conserve les informations saisies manuellement
-         * uniquement si l'utilisateur les a saisies.
-         */
-
-        $this->viderFraisEtPanier();
-
         if (!$value || !$this->anneeId) {
+            $this->resetApresSelection();
             return;
         }
 
-        $this->chargerInscriptions();
+        // Valider que la classe existe et appartient au cycle/année
+        $classe = Classe::query()
+            ->where('id', $value)
+            ->where('cycle_id', $this->cycleId)
+            ->whereHas('annees', fn($q) => $q->where('annees.id', $this->anneeId))
+            ->first();
 
-        /*
-         * Si des catégories étaient déjà sélectionnées,
-         * on recharge les frais.
-         */
-        if (!empty($this->categoriesSelectionnees)) {
+        if (!$classe) {
+            $this->addError('classeId', 'Classe invalide pour cette année.');
+            $this->classeId = null;
+            return;
+        }
+
+        $this->inscriptionId = null;
+        $this->inscriptions = [];
+        $this->viderFrais();
+
+        if ($this->typeEleve === 'ancien') {
+            $this->chargerInscriptions();
+        } elseif ($this->typeEleve === 'nouveau') {
             $this->chargerFrais();
         }
     }
@@ -267,38 +254,107 @@ class PaiementAchatLive extends Component
 
     /*
     |--------------------------------------------------------------------------
-    | CHARGER LES ÉLÈVES INSCRITS
+    | TYPE D'ÉLÈVE
     |--------------------------------------------------------------------------
     */
 
-    private function chargerInscriptions()
+   public function updatedTypeEleve($value): void
+{
+    /*
+    |--------------------------------------------------------------------------
+    | On conserve :
+    | - l'année sélectionnée
+    | - le cycle sélectionné
+    | - la classe sélectionnée
+    |
+    | Le choix "ancien" ou "nouveau" ne doit donc jamais remettre
+    | $this->anneeId, $this->cycleId ou $this->classeId à null.
+    |--------------------------------------------------------------------------
+    */
+
+    // Réinitialiser l'élève actuellement sélectionné
+    $this->inscriptionId = null;
+    $this->nouvelEleveId = null;
+
+    // Réinitialiser les informations de l'élève
+    $this->nom = '';
+    $this->prenom = '';
+    $this->telephone = '';
+
+    // Réinitialiser les frais et les montants
+    $this->viderFrais();
+    $this->resetTotaux();
+
+    /*
+    |--------------------------------------------------------------------------
+    | NOUVEL ÉLÈVE
+    |--------------------------------------------------------------------------
+    |
+    | Le formulaire "Nouveau élève" s'affichera automatiquement dans le Blade
+    | puisque $this->typeEleve vaut "nouveau".
+    |
+    | On conserve $this->classeId afin que la classe précédemment sélectionnée
+    | soit automatiquement affichée dans le formulaire.
+    |
+    */
+    if ($value === 'nouveau') {
+
+        // Aucun ancien élève à sélectionner
+        $this->inscriptions = [];
+
+        return;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | ANCIEN ÉLÈVE
+    |--------------------------------------------------------------------------
+    |
+    | On recharge les élèves inscrits dans :
+    | - l'année sélectionnée
+    | - la classe sélectionnée
+    |
+    */
+    if ($value === 'ancien') {
+
+        $this->chargerInscriptions();
+
+        return;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Aucun type sélectionné
+    |--------------------------------------------------------------------------
+    */
+
+    $this->inscriptions = [];
+}
+
+    /*
+    |--------------------------------------------------------------------------
+    | CHARGER LES INSCRIPTIONS
+    |--------------------------------------------------------------------------
+    */
+
+    private function chargerInscriptions(): void
     {
+        if (!$this->anneeId || !$this->classeId) {
+            return;
+        }
+
         $this->inscriptions = Inscription::query()
             ->with('eleve')
             ->where('classe_id', $this->classeId)
             ->where('annee_id', $this->anneeId)
+            ->orderBy('eleve_id')
             ->get()
-            ->sortBy(function ($inscription) {
-                return mb_strtolower(
-                    trim(
-                        ($inscription->eleve->nom ?? '')
-                        . ' '
-                        . ($inscription->eleve->prenom ?? '')
-                    )
-                );
-            })
-            ->map(function ($inscription) {
-
-                return [
-                    'id' => $inscription->id,
-
-                    'nom' => trim(
-                        ($inscription->eleve->nom ?? '')
-                        . ' '
-                        . ($inscription->eleve->prenom ?? '')
-                    ),
-                ];
-            })
+            ->map(fn($inscription) => [
+                'id' => $inscription->id,
+                'eleve_id' => $inscription->eleve_id,
+                'nom' => trim(($inscription->eleve?->nom ?? '') . ' ' . ($inscription->eleve?->prenom ?? '')),
+                'matricule' => $inscription->eleve?->matricule ?? '',
+            ])
             ->values()
             ->toArray();
     }
@@ -306,757 +362,646 @@ class PaiementAchatLive extends Component
 
     /*
     |--------------------------------------------------------------------------
-    | ÉLÈVE INSCRIT
+    | SÉLECTION ANCIEN ÉLÈVE
     |--------------------------------------------------------------------------
     */
 
-    public function updatedInscriptionId($value)
+    public function updatedInscriptionId(?int $value): void
     {
+        $this->viderFrais();
+
         if (!$value) {
             return;
         }
 
-        $inscription = Inscription::with('eleve')
-            ->find($value);
+        $inscription = Inscription::query()
+            ->with('eleve')
+            ->where('id', $value)
+            ->where('annee_id', $this->anneeId)
+            ->where('classe_id', $this->classeId)
+            ->first();
 
-        if (!$inscription || !$inscription->eleve) {
+        if (!$inscription?->eleve) {
+            $this->addError('inscriptionId', 'Inscription introuvable.');
+            $this->inscriptionId = null;
             return;
         }
 
-        $this->nom =
-            $inscription->eleve->nom ?? '';
+        $this->nom = $inscription->eleve->nom ?? '';
+        $this->prenom = $inscription->eleve->prenom ?? '';
+        $this->telephone = $inscription->eleve->telephone ?? '';
 
-        $this->prenom =
-            $inscription->eleve->prenom ?? '';
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | CATÉGORIES
-    |--------------------------------------------------------------------------
-    */
-
-    public function updatedCategoriesSelectionnees()
-    {
         $this->chargerFrais();
     }
 
 
     /*
     |--------------------------------------------------------------------------
-    | CHARGER LES FRAIS DES CATÉGORIES
+    | ENREGISTRER NOUVEL ÉLÈVE
     |--------------------------------------------------------------------------
     */
 
-   private function chargerFrais()
-{
-    $this->fraisDisponibles = [];
-
-    if (empty($this->categoriesSelectionnees)) {
-        return;
-    }
-
-    if (!$this->anneeId || !$this->classeId) {
-        return;
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Récupération des frais appartenant aux catégories sélectionnées
-    |--------------------------------------------------------------------------
-    */
-
-    $frais = Frais::query()
-        ->with('categorieRecette')
-        ->whereIn(
-            'categorie_recette_id',
-            $this->categoriesSelectionnees
-        )
-        ->orderBy('nom')
-        ->get();
-
-    /*
-    |--------------------------------------------------------------------------
-    | Pour chaque frais, rechercher le montant correspondant
-    | à l'année + classe + frais
-    |--------------------------------------------------------------------------
-    */
-
-    foreach ($frais as $fraisItem) {
-
-        $pivot = DB::table('annee_classe_frais')
-            ->where('annee_id', $this->anneeId)
-            ->where('classe_id', $this->classeId)
-            ->where('frais_id', $fraisItem->id)
-            ->first();
-
-        /*
-        |--------------------------------------------------------------------------
-        | Si aucune tarification n'existe pour cette combinaison,
-        | on ne présente pas l'article comme achetable.
-        |--------------------------------------------------------------------------
-        */
-
-        if (!$pivot) {
-            continue;
-        }
-
-        $this->fraisDisponibles[] = [
-            'frais_id' => $fraisItem->id,
-
-            'categorie_recette_id' =>
-                $fraisItem->categorie_recette_id,
-
-            'categorie' =>
-                $fraisItem->categorieRecette?->nom,
-
-            'categorie_code' =>
-                $fraisItem->categorieRecette?->code,
-
-            'nom' =>
-                $fraisItem->nom,
-
-            'description' =>
-                $fraisItem->description,
-
-            'montant' =>
-                (float) $pivot->montant,
-
-            'selectionne' =>
-                false,
-        ];
-    }
-}
-
-    private function articleDansPanier($fraisId)
+    public function enregistrerNouvelEleve(): void
     {
-        foreach ($this->achats as $achat) {
+        $this->resetErrorBag();
 
-            if (
-                (int) $achat['frais_id']
-                ===
-                (int) $fraisId
-            ) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | AJOUTER / RETIRER UN ARTICLE
-    |--------------------------------------------------------------------------
-    */
-
-    public function toggleFrais($index)
-    {
-        if (
-            !isset(
-                $this->fraisDisponibles[$index]
-            )
-        ) {
+        if (!$this->anneeId) {
+            $this->addError('nouveauEleve.nom', 'Veuillez sélectionner une année.');
             return;
         }
 
-        $frais =
-            $this->fraisDisponibles[$index];
-
-        $fraisId =
-            (int) $frais['frais_id'];
-
-        /*
-         * Chercher l'article dans le panier.
-         */
-        $indexPanier = null;
-
-        foreach ($this->achats as $key => $achat) {
-
-            if (
-                (int) $achat['frais_id']
-                ===
-                $fraisId
-            ) {
-                $indexPanier = $key;
-                break;
-            }
+        if (!$this->classeId) {
+            $this->addError('nouveauEleve.nom', 'Veuillez sélectionner une classe.');
+            return;
         }
 
-        /*
-         * RETIRER
-         */
-        if ($indexPanier !== null) {
+        $this->validate($this->nouveauEleveRules);
 
-            unset(
-                $this->achats[$indexPanier]
-            );
+        try {
+            DB::transaction(function (): void {
+                $eleve = \App\Models\Eleve::create([
+                    'nom' => trim($this->nouveauEleve['nom']),
+                    'prenom' => trim($this->nouveauEleve['prenom']),
+                    'date_naissance' => $this->nouveauEleve['date_naissance'] ?: null,
+                    'lieu_naissance' => $this->nouveauEleve['lieu_naissance'] ?: null,
+                    'sexe' => $this->nouveauEleve['sexe'] ?: null,
+                    'telephone' => $this->nouveauEleve['telephone'] ?: null,
+                    'adresse' => $this->nouveauEleve['adresse'] ?: null,
+                     'nationalite' => 'Béninoise',
+                    ]);
 
-            $this->achats =
-                array_values($this->achats);
+                $inscription = Inscription::create([
+                    'eleve_id' => $eleve->id,
+                    'classe_id' => $this->classeId,
+                    'annee_id' => $this->anneeId,
+                    'date_inscription' => $this->datePaiement,
+                    'decision' => null,
+                ]);
 
-            $this->fraisDisponibles[$index]
-                ['selectionne'] = false;
+                $this->nouvelEleveId = $eleve->id;
+                $this->inscriptionId = $inscription->id;
+                $this->nom = $eleve->nom;
+                $this->prenom = $eleve->prenom;
+                $this->telephone = $eleve->telephone ?? '';
+            });
 
-        } else {
-
-            /*
-             * AJOUTER
-             */
-            $this->achats[] = [
-
-                'frais_id' =>
-                    $frais['frais_id'],
-
-                'categorie_recette_id' =>
-                    $frais['categorie_recette_id'],
-
-                'categorie' =>
-                    $frais['categorie'],
-
-                'categorie_code' =>
-                    $frais['categorie_code'],
-
-                'nom' =>
-                    $frais['nom'],
-
-                'description' =>
-                    $frais['description'],
-
-                'montant' =>
-                    (float) $frais['montant'],
-            ];
-
-            $this->fraisDisponibles[$index]
-                ['selectionne'] = true;
+            $this->typeEleve = 'nouveau';
+            $this->chargerFrais();
+            session()->flash('success', 'Nouvel élève enregistré et inscrit.');
+        } catch (\Throwable $e) {
+            Log::error('Erreur création élève', ['message' => $e->getMessage()]);
+            $this->addError('nouveauEleve.nom', 'Erreur lors de l\'enregistrement.');
         }
-
-        $this->calculerTotal();
     }
 
 
     /*
     |--------------------------------------------------------------------------
-    | SUPPRIMER UN ARTICLE DU PANIER
+    | CHARGER LES FRAIS
     |--------------------------------------------------------------------------
     */
 
-    public function supprimerAchat($index)
+    private function chargerFrais(): void
+    {
+        $this->fraisDisponibles = [];
+        $this->achats = [];
+        $this->resetTotaux();
+
+        if (!$this->anneeId || !$this->classeId) {
+            return;
+        }
+
+        $lignes = DB::table('annee_classe_frais')
+            ->join('frais', 'frais.id', '=', 'annee_classe_frais.frais_id')
+            ->leftJoin('categories_recettes', 'categories_recettes.id', '=', 'frais.categorie_recette_id')
+            ->where('annee_classe_frais.annee_id', $this->anneeId)
+            ->where('annee_classe_frais.classe_id', $this->classeId)
+            ->select([
+                'frais.id as frais_id',
+                'frais.nom',
+                'frais.description',
+                'frais.categorie_recette_id',
+                'categories_recettes.nom as categorie',
+                'categories_recettes.code as categorie_code',
+                'annee_classe_frais.montant',
+            ])
+            ->orderBy('frais.nom')
+            ->get();
+
+        foreach ($lignes as $ligne) {
+            $dejaPaye = 0;
+            $reste = (float) $ligne->montant;
+
+            if ($this->inscriptionId) {
+                $inscriptionFrais = DB::table('inscription_frais')
+                    ->where('inscription_id', $this->inscriptionId)
+                    ->where('frais_id', $ligne->frais_id)
+                    ->where('annee_id', $this->anneeId)
+                    ->first();
+
+                if ($inscriptionFrais) {
+                    $dejaPaye = (float) ($inscriptionFrais->montant_paye ?? 0);
+                    $reste = max(0, (float) ($inscriptionFrais->reste ?? ($ligne->montant - $dejaPaye)));
+                } else {
+                    $dejaPaye = (float) PaiementAchat::query()
+                        ->where('inscription_id', $this->inscriptionId)
+                        ->where('frais_id', $ligne->frais_id)
+                        ->sum('montant');
+
+                    $reste = max(0, (float) $ligne->montant - $dejaPaye);
+                }
+            }
+
+            // Ne pas afficher un frais totalement soldé
+            if ($reste <= 0) {
+                continue;
+            }
+
+            $this->fraisDisponibles[] = [
+                'frais_id' => (int) $ligne->frais_id,
+                'categorie_recette_id' => $ligne->categorie_recette_id,
+                'categorie' => $ligne->categorie,
+                'categorie_code' => $ligne->categorie_code,
+                'nom' => $ligne->nom,
+                'description' => $ligne->description,
+                'montant' => (float) $ligne->montant,
+                'deja_paye' => $dejaPaye,
+                'reste' => $reste,
+                'selectionne' => false,
+            ];
+        }
+
+        // Pour un nouveau élève : initialiser les lignes inscription_frais
+        if ($this->inscriptionId && $this->typeEleve === 'nouveau') {
+            $this->initialiserInscriptionFrais();
+        }
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | INITIALISER LES FRAIS
+    |--------------------------------------------------------------------------
+    */
+
+    private function initialiserInscriptionFrais(): void
+    {
+        if (!$this->inscriptionId) {
+            return;
+        }
+
+        foreach ($this->fraisDisponibles as $frais) {
+            DB::table('inscription_frais')->updateOrInsert(
+                [
+                    'inscription_id' => $this->inscriptionId,
+                    'frais_id' => $frais['frais_id'],
+                    'annee_id' => $this->anneeId,
+                ],
+                [
+                    'montant_frais' => $frais['montant'],
+                    'montant_paye' => 0,
+                    'reste' => $frais['montant'],
+                    'statut' => 'non_payé',
+                    'est_arriere' => false,
+                    'updated_at' => now(),
+                    'created_at' => now(),
+                ]
+            );
+        }
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | TOGGLE FRAIS
+    |--------------------------------------------------------------------------
+    */
+
+    public function toggleFrais(int $index): void
+    {
+        if (!isset($this->fraisDisponibles[$index])) {
+            return;
+        }
+
+        $frais = $this->fraisDisponibles[$index];
+        $fraisId = (int) $frais['frais_id'];
+
+        // Chercher dans le panier
+        $indexPanier = array_search(
+            $fraisId,
+            array_column($this->achats, 'frais_id'),
+            true
+        );
+
+        if ($indexPanier !== false) {
+            // Retirer du panier
+            unset($this->achats[$indexPanier]);
+            $this->achats = array_values($this->achats);
+            $this->fraisDisponibles[$index]['selectionne'] = false;
+        } else {
+            // Ajouter au panier
+            $this->achats[] = [
+                'frais_id' => $frais['frais_id'],
+                'categorie_recette_id' => $frais['categorie_recette_id'],
+                'categorie' => $frais['categorie'],
+                'categorie_code' => $frais['categorie_code'],
+                'nom' => $frais['nom'],
+                'description' => $frais['description'],
+                'montant' => (float) $frais['montant'],
+                'deja_paye' => (float) $frais['deja_paye'],
+                'reste' => (float) $frais['reste'],
+            ];
+            $this->fraisDisponibles[$index]['selectionne'] = true;
+        }
+
+        $this->calculerTotaux();
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | SUPPRIMER ACHAT
+    |--------------------------------------------------------------------------
+    */
+
+    public function supprimerAchat(int $index): void
     {
         if (!isset($this->achats[$index])) {
             return;
         }
 
+        $fraisId = $this->achats[$index]['frais_id'];
         unset($this->achats[$index]);
+        $this->achats = array_values($this->achats);
 
-        $this->achats =
-            array_values($this->achats);
+        // Déselectionner le frais
+        foreach ($this->fraisDisponibles as $key => $frais) {
+            if ((int) $frais['frais_id'] === $fraisId) {
+                $this->fraisDisponibles[$key]['selectionne'] = false;
+            }
+        }
 
-        /*
-         * Recharger l'état des cases.
-         */
-        $this->chargerFrais();
-
-        $this->calculerTotal();
+        $this->calculerTotaux();
     }
 
 
     /*
     |--------------------------------------------------------------------------
-    | TOTAL
+    | CALCULER TOTAUX
     |--------------------------------------------------------------------------
     */
 
-    private function calculerTotal()
+    private function calculerTotaux(): void
     {
-        $this->total = collect($this->achats)
-            ->sum(function ($achat) {
-
-                return (float) (
-                    $achat['montant'] ?? 0
-                );
-            });
+        $this->totalFrais = collect($this->achats)->sum(fn($a) => (float) ($a['reste'] ?? 0));
+        $this->totalDejaPaye = collect($this->achats)->sum(fn($a) => (float) ($a['deja_paye'] ?? 0));
+        $this->resteAvantPaiement = $this->totalFrais;
+        $this->resteApresPaiement = max(0, $this->totalFrais - (float) ($this->montantPaye ?: 0));
     }
 
 
     /*
     |--------------------------------------------------------------------------
-    | VIDER FRAIS ET PANIER
+    | UPDATED MONTANT PAYÉ
     |--------------------------------------------------------------------------
     */
 
-    private function viderFraisEtPanier()
+    public function updatedMontantPaye(float|string|null $value): void
     {
-        $this->fraisDisponibles = [];
-
-        $this->achats = [];
-
-        $this->total = 0;
+        $this->calculerTotaux();
     }
 
 
     /*
     |--------------------------------------------------------------------------
-    | ENREGISTRER LE PAIEMENT
+    | RÉPARTIR PAIEMENT
     |--------------------------------------------------------------------------
     */
 
-    public function enregistrer()
+    private function repartirPaiement(float $montant): array
+    {
+        $resultat = [];
+        $restePaiement = (float) $montant;
+
+        foreach ($this->achats as $achat) {
+            if ($restePaiement <= 0) {
+                break;
+            }
+
+            $resteFrais = (float) ($achat['reste'] ?? 0);
+            if ($resteFrais <= 0) {
+                continue;
+            }
+
+            $versement = min($restePaiement, $resteFrais);
+
+            $resultat[] = [
+                'frais_id' => $achat['frais_id'],
+                'categorie_recette_id' => $achat['categorie_recette_id'],
+                'montant' => $versement,
+            ];
+
+            $restePaiement -= $versement;
+        }
+
+        return [
+            'lignes' => $resultat,
+            'non_reparti' => $restePaiement,
+        ];
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | ENREGISTRER PAIEMENT
+    |--------------------------------------------------------------------------
+    */
+
+    public function enregistrer(): void
     {
         $this->resetErrorBag();
 
-        /*
-         * Validation.
-         */
-        $this->validate([
-            'nom' => [
-                'required',
-                'string',
-                'max:255',
-            ],
+        // Validation générale
+        $this->validate($this->fraisRules);
 
-            'prenom' => [
-                'required',
-                'string',
-                'max:255',
-            ],
+        // Validations métier
+        if (!$this->validerContexte()) {
+            return;
+        }
 
-            'telephone' => [
-                'nullable',
-                'string',
-                'max:30',
-            ],
-
-            'modePaiement' => [
-                'required',
-                'string',
-                'max:50',
-            ],
-
-            'datePaiement' => [
-                'required',
-                'date',
-            ],
-        ]);
-
-
-        /*
-         * Vérifier le panier.
-         */
         if (empty($this->achats)) {
-
-            $this->addError(
-                'achats',
-                'Veuillez sélectionner au moins un article.'
-            );
-
+            $this->addError('achats', 'Veuillez sélectionner au moins un frais.');
             return;
         }
 
+        $this->calculerTotaux();
+        $montant = (float) $this->montantPaye;
 
-        /*
-         * Vérifier le montant.
-         */
-        $this->calculerTotal();
-
-        if ($this->total <= 0) {
-
-            $this->addError(
-                'achats',
-                'Le montant total doit être supérieur à zéro.'
-            );
-
+        if ($montant > $this->totalFrais) {
+            $this->addError('montantPaye', 'Le montant dépasse le reste à payer.');
             return;
         }
 
+        $repartition = $this->repartirPaiement($montant);
 
-        /*
-         * Numéro unique du reçu.
-         */
-        $numeroRecu =
-            'ACH-'
-            . now()->format('Ymd')
-            . '-'
-            . strtoupper(
-                Str::random(8)
-            );
-
-
-        /*
-         * Vérification finale des articles
-         * avant insertion.
-         */
-        foreach ($this->achats as $achat) {
-
-            $fraisExiste =
-                Frais::where(
-                    'id',
-                    $achat['frais_id']
-                )
-                ->where(
-                    'categorie_recette_id',
-                    $achat['categorie_recette_id']
-                )
-                ->exists();
-
-            if (!$fraisExiste) {
-
-                $this->addError(
-                    'achats',
-                    'Un des articles sélectionnés n\'existe plus.'
-                );
-
-                return;
-            }
+        if (empty($repartition['lignes']) || $repartition['non_reparti'] > 0.01) {
+            $this->addError('montantPaye', 'Erreur lors de la répartition du paiement.');
+            return;
         }
 
+        $numeroRecu = 'ACH-' . now()->format('Ymd') . '-' . strtoupper(Str::random(8));
 
-        /*
-         * TRANSACTION
-         */
-        DB::transaction(function () use (
-            $numeroRecu
-        ) {
-
-            foreach ($this->achats as $achat) {
-
-                PaiementAchat::create([
-
-                    'numero_recu' =>
-                        $numeroRecu,
-
-                    /*
-                     * NULL pour un non-inscrit.
-                     */
-                    'inscription_id' =>
-                        $this->inscriptionId ?: null,
-
-                    'nom' =>
-                        trim($this->nom),
-
-                    'prenom' =>
-                        trim($this->prenom),
-
-                    'telephone' =>
-                        $this->telephone
-                        ? trim($this->telephone)
-                        : null,
-
-                    'frais_id' =>
-                        $achat['frais_id'],
-
-                    'categorie_recette_id' =>
-                        $achat['categorie_recette_id'],
-
-                    'montant' =>
-                        (float) $achat['montant'],
-
-                    'mode_paiement' =>
-                        $this->modePaiement,
-
-                    'date_paiement' =>
-                        $this->datePaiement,
-                ]);
-            }
-        });
-
-
-        /*
-         * Mémoriser le reçu.
-         */
-        $this->numeroRecuGenere =
-            $numeroRecu;
-
-        $this->successMessage =
-            'Paiement enregistré avec succès.';
-
-
-        /*
-         * IMPRESSION
-         */
         try {
+            $this->traiterPaiement($numeroRecu, $repartition);
+            $this->numeroRecuGenere = $numeroRecu;
+            $this->successMessage = 'Paiement enregistré avec succès.';
 
-            $this->imprimerRecu(
-                $numeroRecu
-            );
+            try {
+                $this->imprimerRecu($numeroRecu);
+                $this->dispatch('impressionReussie', numeroRecu: $numeroRecu);
+            } catch (\Throwable $e) {
+                Log::error('Erreur impression', ['numero_recu' => $numeroRecu, 'message' => $e->getMessage()]);
+                $this->dispatch('impressionEchouee', numeroRecu: $numeroRecu, message: $e->getMessage());
+            }
 
-            $this->dispatch(
-                'impressionReussie',
-                numeroRecu: $numeroRecu
-            );
+            $this->dispatch('achat-enregistre', numeroRecu: $numeroRecu);
+            $this->dispatch('ouvrirTicket', numeroRecu: $numeroRecu);
 
+            $this->montantPaye = 0;
+            $this->chargerFrais();
         } catch (\Throwable $e) {
-
-            Log::error(
-                'Erreur impression reçu achat',
-                [
-                    'numero_recu' =>
-                        $numeroRecu,
-
-                    'message' =>
-                        $e->getMessage(),
-
-                    'trace' =>
-                        $e->getTraceAsString(),
-                ]
-            );
-
-            /*
-             * Le paiement reste enregistré.
-             * Seule l'impression a échoué.
-             */
-            $this->dispatch(
-                'impressionEchouee',
-                numeroRecu: $numeroRecu,
-                message: $e->getMessage()
-            );
+            Log::error('Erreur paiement', ['message' => $e->getMessage()]);
+            $this->addError('montantPaye', 'Erreur lors de l\'enregistrement.');
         }
-
-
-        /*
-         * Événements Livewire.
-         */
-        $this->dispatch(
-            'achat-enregistre',
-            numeroRecu: $numeroRecu
-        );
-
-        $this->dispatch(
-            'ouvrirTicket',
-            numeroRecu: $numeroRecu
-        );
-
-
-        /*
-         * RESET DU FORMULAIRE
-         */
-        $this->achats = [];
-
-        $this->fraisDisponibles = [];
-
-        $this->categoriesSelectionnees = [];
-
-        $this->inscriptionId = null;
-
-        $this->nom = '';
-
-        $this->prenom = '';
-
-        $this->telephone = '';
-
-        $this->modePaiement = '';
-
-        $this->total = 0;
-
-        /*
-         * On conserve :
-         * - année
-         * - cycle
-         * - classe
-         */
     }
 
 
     /*
     |--------------------------------------------------------------------------
-    | IMPRESSION
+    | VALIDER CONTEXTE
     |--------------------------------------------------------------------------
     */
 
-    private function imprimerRecu(
-        string $numeroRecu
-    ): void {
-
-        /*
-         * Récupérer toutes les lignes
-         * du même reçu.
-         */
-        $paiements =
-            PaiementAchat::query()
-                ->with([
-                    'frais',
-                    'categorieRecette',
-                    'inscription.eleve',
-                    'inscription.classe',
-                    'inscription.annee',
-                ])
-                ->where(
-                    'numero_recu',
-                    $numeroRecu
-                )
-                ->orderBy('id')
-                ->get();
-
-
-        if ($paiements->isEmpty()) {
-
-            throw new \RuntimeException(
-                "Aucun paiement trouvé pour le reçu {$numeroRecu}."
-            );
+    private function validerContexte(): bool
+    {
+        if ($this->typeEleve === 'ancien' && !$this->inscriptionId) {
+            $this->addError('inscriptionId', 'Sélectionnez l\'élève.');
+            return false;
         }
 
+        if ($this->typeEleve === 'nouveau' && !$this->inscriptionId) {
+            $this->addError('nouveauEleve.nom', 'Enregistrez le nouvel élève.');
+            return false;
+        }
 
-        $premier =
-            $paiements->first();
+        return true;
+    }
 
 
-        /*
-         * Construire les lignes du ticket.
-         */
-        $details =
-            $paiements->map(
-                function ($paiement) {
+    /*
+    |--------------------------------------------------------------------------
+    | TRAITER PAIEMENT
+    |--------------------------------------------------------------------------
+    */
 
-                    $categorie =
-                        $paiement
-                            ->categorieRecette
-                            ?->nom;
+    private function traiterPaiement(string $numeroRecu, array $repartition): void
+    {
+        DB::transaction(function () use ($numeroRecu, $repartition): void {
+            foreach ($repartition['lignes'] as $ligne) {
+                $frais = Frais::find($ligne['frais_id']);
 
-                    $article =
-                        $paiement
-                            ->frais
-                            ?->nom;
-
-                    return [
-
-                        'nom' =>
-                            $categorie
-                            ? (
-                                $categorie
-                                . ' - '
-                                . ($article ?? 'Article')
-                            )
-                            : (
-                                $article
-                                ?? 'Article'
-                            ),
-
-                        'montant' =>
-                            (float)
-                            $paiement->montant,
-                    ];
+                if (!$frais) {
+                    throw new \RuntimeException('Frais introuvable.');
                 }
-            )
-            ->toArray();
+
+                $inscriptionFrais = DB::table('inscription_frais')
+                    ->where('inscription_id', $this->inscriptionId)
+                    ->where('frais_id', $ligne['frais_id'])
+                    ->where('annee_id', $this->anneeId)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$inscriptionFrais) {
+                    $montantFrais = collect($this->achats)
+                        ->firstWhere('frais_id', $ligne['frais_id'])['montant'] ?? 0;
+
+                    DB::table('inscription_frais')->insert([
+                        'inscription_id' => $this->inscriptionId,
+                        'frais_id' => $ligne['frais_id'],
+                        'annee_id' => $this->anneeId,
+                        'montant_frais' => $montantFrais,
+                        'montant_paye' => 0,
+                        'reste' => $montantFrais,
+                        'statut' => 'non_payé',
+                        'est_arriere' => false,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+
+                    $inscriptionFrais = DB::table('inscription_frais')
+                        ->where('inscription_id', $this->inscriptionId)
+                        ->where('frais_id', $ligne['frais_id'])
+                        ->where('annee_id', $this->anneeId)
+                        ->lockForUpdate()
+                        ->first();
+                }
+
+                $resteActuel = (float) ($inscriptionFrais->reste ?? 0);
+                $versement = (float) $ligne['montant'];
+
+                if ($versement > $resteActuel) {
+                    throw new \RuntimeException('Montant du paiement dépasse le reste.');
+                }
+
+                $nouveauPaye = (float) ($inscriptionFrais->montant_paye ?? 0) + $versement;
+                $nouveauReste = max(0, $resteActuel - $versement);
+
+                DB::table('inscription_frais')
+                    ->where('id', $inscriptionFrais->id)
+                    ->update([
+                        'montant_paye' => $nouveauPaye,
+                        'reste' => $nouveauReste,
+                        'statut' => $nouveauReste <= 0 ? 'soldé' : 'non_payé',
+                        'updated_at' => now(),
+                    ]);
+
+                $paiementAchat = PaiementAchat::create([
+                    'numero_recu' => $numeroRecu,
+                    'inscription_id' => $this->inscriptionId,
+                    'nom' => trim($this->nom),
+                    'prenom' => trim($this->prenom),
+                    'telephone' => $this->telephone ? trim($this->telephone) : null,
+                    'frais_id' => $ligne['frais_id'],
+                    'categorie_recette_id' => $ligne['categorie_recette_id'],
+                    'montant' => $versement,
+                    'mode_paiement' => $this->modePaiement,
+                    'date_paiement' => $this->datePaiement,
+                ]);
+
+                Recette::create([
+                    'date_paiement' => $this->datePaiement,
+                    'montant_verse' => $versement,
+                    'paiement_id' => null,
+                    'paiement_achat_id' => $paiementAchat->id,
+                    'inscription_id' => $this->inscriptionId,
+                    'mode_paiement' => $this->modePaiement,
+                    'numero_recu' => $numeroRecu,
+                    'categorie_recette_id' => $ligne['categorie_recette_id'],
+                    'annee_id' => $this->anneeId,
+                ]);
+            }
+        });
+    }
 
 
-        /*
-         * TOTAL.
-         */
-        $total =
-            (float) $paiements
-                ->sum('montant');
+    /*
+    |--------------------------------------------------------------------------
+    | IMPRIMER REÇU
+    |--------------------------------------------------------------------------
+    */
+
+    public function imprimerRecu(?string $numeroRecu = null): void
+    {
+        // Permet l'appel depuis Blade avec wire:click="imprimerRecu"
+        // ou depuis enregistrer() avec imprimerRecu($numeroRecu).
+        $numeroRecu = $numeroRecu ?: $this->numeroRecuGenere;
+
+        if (!$numeroRecu) {
+            throw new \RuntimeException('Aucun numéro de reçu disponible pour l\'impression.');
+        }
+        $paiements = PaiementAchat::query()
+            ->with(['frais', 'categorieRecette', 'inscription.eleve', 'inscription.classe', 'inscription.annee'])
+            ->where('numero_recu', $numeroRecu)
+            ->orderBy('id')
+            ->get();
+
+        if ($paiements->isEmpty()) {
+            throw new \RuntimeException("Paiement introuvable pour {$numeroRecu}.");
+        }
+
+        $premier = $paiements->first();
+        $details = $paiements->map(fn($p) => [
+            'nom' => ($p->categorieRecette?->nom ?? '') . ' - ' . ($p->frais?->nom ?? 'Frais'),
+            'montant' => (float) $p->montant,
+        ])->toArray();
+
+        $totalRecu = (float) $paiements->sum('montant');
+        $totalFraisSelectionnes = 0;
+        $totalDejaPaye = 0;
+
+        foreach ($paiements as $paiement) {
+            $inscriptionFrais = DB::table('inscription_frais')
+                ->where('inscription_id', $paiement->inscription_id)
+                ->where('frais_id', $paiement->frais_id)
+                ->where('annee_id', $this->anneeId)
+                ->first();
+
+            if ($inscriptionFrais) {
+                $totalFraisSelectionnes += (float) $inscriptionFrais->montant_frais;
+                $totalDejaPaye += (float) $inscriptionFrais->montant_paye;
+            }
+        }
+
+        $fraisIds = $paiements->pluck('frais_id')->unique()->values();
+        $totalPayeHistorique = PaiementAchat::query()
+            ->where('inscription_id', $premier->inscription_id)
+            ->whereIn('frais_id', $fraisIds)
+            ->sum('montant');
+
+        $reste = max(0, $totalFraisSelectionnes - $totalPayeHistorique);
+        $statut = $reste <= 0 ? 'SOLDE' : ($totalPayeHistorique > 0 ? 'PARTIEL' : 'NON PAYE');
+
+        $serviceRecu = new RecuThermiqueService();
+        $ticket = $serviceRecu->generate([
+            'numero' => $numeroRecu,
+            'date' => $premier->date_paiement ? \Carbon\Carbon::parse($premier->date_paiement)->format('d/m/Y') : now()->format('d/m/Y'),
+            'eleve' => trim($premier->nom . ' ' . $premier->prenom),
+            'matricule' => $premier->inscription?->eleve?->matricule ?? '-',
+            'classe' => $premier->inscription?->classe?->nom ?? '-',
+            'annee' => $premier->inscription?->annee?->nom ?? '-',
+            'details' => $details,
+            'total_recu' => $totalRecu,
+            'total_paye' => $totalPayeHistorique,
+            'total_frais' => $totalFraisSelectionnes,
+            'reste' => $reste,
+            'statut' => $statut,
+            'mode_paiement' => $premier->mode_paiement ?? '-',
+        ]);
+
+        $printer = new ThermalPrinterService('Xprinter_POS58');
+        $printer->print($ticket);
+    }
 
 
-        /*
-         * INSCRIPTION ÉVENTUELLE.
-         */
-        $inscription =
-            $premier->inscription;
+    /*
+    |--------------------------------------------------------------------------
+    | RESET
+    |--------------------------------------------------------------------------
+    */
 
+    private function resetApresSelection(): void
+    {
+        $this->inscriptionId = null;
+        $this->nouvelEleveId = null;
+        $this->viderFrais();
+        $this->nom = '';
+        $this->prenom = '';
+        $this->telephone = '';
+    }
 
-        /*
-         * SERVICE REÇU
-         */
-        $serviceRecu =
-            new RecuThermiqueService();
+    private function viderFrais(): void
+    {
+        $this->fraisDisponibles = [];
+        $this->achats = [];
+        $this->resetTotaux();
+    }
 
-
-        /*
-         * Génération du ticket.
-         *
-         * Cette structure reprend le format
-         * utilisé par votre système de reçu.
-         */
-        $ticket =
-            $serviceRecu->generate([
-
-                'numero' =>
-                    $numeroRecu,
-
-                'date' =>
-                    $premier->date_paiement
-                    ? $premier
-                        ->date_paiement
-                        ->format('d/m/Y')
-                    : now()->format('d/m/Y'),
-
-                'eleve' =>
-                    trim(
-                        $premier->nom
-                        . ' '
-                        . $premier->prenom
-                    ),
-
-                'matricule' =>
-                    $inscription?->eleve?->matricule
-                    ?? '-',
-
-                'classe' =>
-                     Classe::find($this->classeId)?->nom
-                     ?? $inscription?->classe?->nom
-                     ?? '-',
-
-                'annee' =>
-                      Annee::find($this->anneeId)?->nom
-                      ?? $inscription?->annee?->nom
-                      ?? '-',
-
-                'details' =>
-                    $details,
-
-                'total_recu' =>
-                    $total,
-
-                'total_paye' =>
-                    $total,
-
-                'total_frais' =>
-                    $total,
-
-                'reste' =>
-                    0,
-
-                'statut' =>
-                    'PAYE',
-
-                'mode_paiement' =>
-                    $premier->mode_paiement
-                    ?? '-',
-            ]);
-
-
-        /*
-         * IMPRIMANTE
-         */
-        $printer =
-            new ThermalPrinterService(
-                'Xprinter_POS58'
-            );
-
-
-        /*
-         * Impression.
-         */
-        $result =
-            $printer->print($ticket);
-
-
-        Log::info(
-            'Reçu achat imprimé',
-            [
-                'numero_recu' =>
-                    $numeroRecu,
-
-                'imprimante' =>
-                    'Xprinter_POS58',
-
-                'resultat' =>
-                    $result,
-            ]
-        );
+    private function resetTotaux(): void
+    {
+        $this->totalFrais = 0;
+        $this->totalDejaPaye = 0;
+        $this->resteAvantPaiement = 0;
+        $this->resteApresPaiement = 0;
     }
 
 
@@ -1068,8 +1013,6 @@ class PaiementAchatLive extends Component
 
     public function render()
     {
-        return view(
-            'livewire.paiements.paiement-achat-live'
-        );
+        return view('livewire.paiements.paiement-achat-live');
     }
 }

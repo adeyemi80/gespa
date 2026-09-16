@@ -88,38 +88,110 @@ public function show(InscriptionFrais $inscription_frai)
     /**
      * Mettre à jour le montant du frais pour un élève
      */
-   public function update(Request $request, InscriptionFrais $inscription_frai)
+ public function update(Request $request, InscriptionFrais $inscription_frai)
 {
-    $request->validate([
-        'montant_frais' => 'required|numeric|min:0',
-        'montant_paye'  => 'required|numeric|min:0',
-        'statut'        => 'required|in:non_payé,partiellement_payé,soldé',
-        'est_arriere'   => 'required|boolean',
+    $validated = $request->validate([
+        'montant_frais' => [
+            'required',
+            'numeric',
+            'min:0',
+        ],
+
+        'montant_paye' => [
+            'required',
+            'numeric',
+            'min:0',
+        ],
+
+        'est_arriere' => [
+            'required',
+            'boolean',
+        ],
     ]);
 
-    // 🔁 Recalcul automatique
-    $reste = $request->montant_frais - $request->montant_paye;
+    /*
+    |--------------------------------------------------------------------------
+    | MONTANTS
+    |--------------------------------------------------------------------------
+    */
+
+    $montantFrais = (float) $validated['montant_frais'];
+    $montantPaye  = (float) $validated['montant_paye'];
+
+    /*
+    |--------------------------------------------------------------------------
+    | EMPÊCHER UN PAIEMENT SUPÉRIEUR AU MONTANT DU FRAIS
+    |--------------------------------------------------------------------------
+    */
+
+    if ($montantPaye > $montantFrais) {
+
+        return back()
+            ->withInput()
+            ->withErrors([
+                'montant_paye' =>
+                    'Le montant payé ne peut pas être supérieur au montant total du frais.'
+            ]);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | CALCUL DU RESTE
+    |--------------------------------------------------------------------------
+    */
+
+    $reste = $montantFrais - $montantPaye;
+
+    /*
+    |--------------------------------------------------------------------------
+    | CALCUL AUTOMATIQUE DU STATUT
+    |--------------------------------------------------------------------------
+    */
 
     if ($reste <= 0) {
+
+        $reste = 0;
+
         $statut = 'soldé';
-        $reste  = 0;
-    } elseif ($request->montant_paye > 0) {
+
+    } elseif ($montantPaye > 0) {
+
         $statut = 'partiellement_payé';
+
     } else {
+
         $statut = 'non_payé';
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | MISE À JOUR
+    |--------------------------------------------------------------------------
+    */
+
     $inscription_frai->update([
-        'montant_frais' => $request->montant_frais,
-        'montant_paye'  => $request->montant_paye,
+        'montant_frais' => $montantFrais,
+        'montant_paye'  => $montantPaye,
         'reste'         => $reste,
         'statut'        => $statut,
-        'est_arriere'   => $request->est_arriere,
+        'est_arriere'   => (bool) $validated['est_arriere'],
     ]);
 
+    /*
+    |--------------------------------------------------------------------------
+    | REDIRECTION
+    |--------------------------------------------------------------------------
+    */
+
     return redirect()
-        ->route('inscription-frais.show', $inscription_frai->id)
-        ->with('success', '✅ Frais de l’élève modifié avec succès.');
+        ->route(
+            'inscription-frais.show',
+            $inscription_frai->id
+        )
+        ->with(
+            'success',
+            '✅ Frais de l’élève modifié avec succès.'
+        );
 }
 
 public function elevesParClasse($classeId)
