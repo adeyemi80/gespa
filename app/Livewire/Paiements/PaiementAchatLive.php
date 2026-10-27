@@ -40,6 +40,10 @@ class PaiementAchatLive extends Component
     public array $inscriptions = [];
     public ?int $inscriptionId = null;
 
+    // Inscription d'un élève externe aux TD
+    public array $inscriptionsTdExternes = [];
+    public ?int $inscriptionTdExterneId = null;
+
     // Nouvel élève
     public array $nouveauEleve = [
         'nom' => '',
@@ -76,13 +80,15 @@ class PaiementAchatLive extends Component
     // Reçu
     public ?string $numeroRecuGenere = null;
     public string $successMessage = '';
+    // Historique des anciens reçus
+    public array $anciensRecus = [];
 
     // Validation rules
     protected array $fraisRules = [
         'anneeId' => 'required|exists:annees,id',
         'cycleId' => 'required|exists:cycles,id',
         'classeId' => 'required|exists:classes,id',
-        'typeEleve' => 'required|in:ancien,nouveau',
+        'typeEleve' => 'required|in:ancien,nouveau,externe_td',
         'modePaiement' => 'required|string|max:50',
         'datePaiement' => 'required|date',
         'montantPaye' => 'required|numeric|min:0.01',
@@ -248,6 +254,8 @@ private function chargerClasses()
             $this->chargerInscriptions();
         } elseif ($this->typeEleve === 'nouveau') {
             $this->chargerFrais();
+        } elseif ($this->typeEleve === 'externe_td') {
+            $this->chargerInscriptionsTdExternes();
         }
     }
 
@@ -274,7 +282,10 @@ private function chargerClasses()
 
     // Réinitialiser l'élève actuellement sélectionné
     $this->inscriptionId = null;
+    $this->inscriptionTdExterneId = null;
+    $this->inscriptionsTdExternes = [];
     $this->nouvelEleveId = null;
+    $this->anciensRecus = [];
 
     // Réinitialiser les informations de l'élève
     $this->nom = '';
@@ -322,6 +333,14 @@ private function chargerClasses()
         return;
     }
 
+    if ($value === 'externe_td') {
+        $this->inscriptions = [];
+        if ($this->anneeId && $this->classeId) {
+            $this->chargerInscriptionsTdExternes();
+        }
+        return;
+    }
+
     /*
     |--------------------------------------------------------------------------
     | Aucun type sélectionné
@@ -330,6 +349,76 @@ private function chargerClasses()
 
     $this->inscriptions = [];
 }
+
+    /*
+    |--------------------------------------------------------------------------
+    | INSCRIPTIONS DES ÉLÈVES EXTERNES TD
+    |--------------------------------------------------------------------------
+    */
+
+    private function chargerInscriptionsTdExternes(): void
+    {
+        $this->inscriptionsTdExternes = [];
+        $this->viderFrais();
+
+        if (!$this->anneeId || !$this->classeId) {
+            return;
+        }
+
+        $this->inscriptionsTdExternes = DB::table('inscriptions_td_externes as ite')
+            ->join('eleves_externes_td as eet', 'eet.id', '=', 'ite.eleve_externe_td_id')
+            ->where('ite.annee_id', $this->anneeId)
+            ->where('ite.classe_id', $this->classeId)
+            ->where('ite.statut', 'active')
+            ->select([
+                'ite.id',
+                'ite.eleve_externe_td_id',
+                'ite.frais_id',
+                'ite.montant_total',
+                'eet.matricule',
+                'eet.nom',
+                'eet.prenom',
+                'eet.telephone',
+            ])
+            ->orderBy('eet.nom')
+            ->orderBy('eet.prenom')
+            ->get()
+            ->map(fn ($row) => (array) $row)
+            ->toArray();
+    }
+
+    public function updatedInscriptionTdExterneId(?int $value): void
+    {
+        $this->viderFrais();
+        $this->anciensRecus = [];
+
+        if (!$value) {
+            $this->nom = '';
+            $this->prenom = '';
+            $this->telephone = '';
+            return;
+        }
+
+        $inscription = DB::table('inscriptions_td_externes as ite')
+            ->join('eleves_externes_td as eet', 'eet.id', '=', 'ite.eleve_externe_td_id')
+            ->where('ite.id', $value)
+            ->where('ite.annee_id', $this->anneeId)
+            ->where('ite.classe_id', $this->classeId)
+            ->where('ite.statut', 'active')
+            ->select('ite.*', 'eet.nom', 'eet.prenom', 'eet.telephone', 'eet.matricule')
+            ->first();
+
+        if (!$inscription) {
+            $this->addError('inscriptionTdExterneId', 'Inscription TD externe introuvable ou inactive.');
+            $this->inscriptionTdExterneId = null;
+            return;
+        }
+
+        $this->nom = $inscription->nom ?? '';
+        $this->prenom = $inscription->prenom ?? '';
+        $this->telephone = $inscription->telephone ?? '';
+        $this->chargerFrais();
+    }
 
     /*
     |--------------------------------------------------------------------------
@@ -360,39 +449,51 @@ private function chargerClasses()
     }
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | SÉLECTION ANCIEN ÉLÈVE
-    |--------------------------------------------------------------------------
-    */
+   /*
+|--------------------------------------------------------------------------
+| SÉLECTION ANCIEN ÉLÈVE
+|--------------------------------------------------------------------------
+*/
 
-    public function updatedInscriptionId(?int $value): void
-    {
-        $this->viderFrais();
+public function updatedInscriptionId(?int $value): void
+{
+    $this->viderFrais();
+    $this->anciensRecus = [];
 
-        if (!$value) {
-            return;
-        }
+    if (!$value) {
+        $this->nom = '';
+        $this->prenom = '';
+        $this->telephone = '';
 
-        $inscription = Inscription::query()
-            ->with('eleve')
-            ->where('id', $value)
-            ->where('annee_id', $this->anneeId)
-            ->where('classe_id', $this->classeId)
-            ->first();
-
-        if (!$inscription?->eleve) {
-            $this->addError('inscriptionId', 'Inscription introuvable.');
-            $this->inscriptionId = null;
-            return;
-        }
-
-        $this->nom = $inscription->eleve->nom ?? '';
-        $this->prenom = $inscription->eleve->prenom ?? '';
-        $this->telephone = $inscription->eleve->telephone ?? '';
-
-        $this->chargerFrais();
+        return;
     }
+
+    $inscription = Inscription::query()
+        ->with('eleve')
+        ->where('id', $value)
+        ->where('annee_id', $this->anneeId)
+        ->where('classe_id', $this->classeId)
+        ->first();
+
+    if (!$inscription || !$inscription->eleve) {
+        $this->addError('inscriptionId', 'Inscription introuvable.');
+
+        $this->inscriptionId = null;
+
+        return;
+    }
+
+    // Informations de l'élève sélectionné
+    $this->nom = $inscription->eleve->nom ?? '';
+    $this->prenom = $inscription->eleve->prenom ?? '';
+    $this->telephone = $inscription->eleve->telephone ?? '';
+
+    // Charger les frais de l'inscription actuelle
+    $this->chargerFrais();
+
+    // Charger tous les reçus de cet élève, toutes années confondues
+    $this->chargerAnciensRecus();
+}
 
 
     /*
@@ -471,6 +572,12 @@ private function chargerClasses()
             return;
         }
 
+        // Un externe TD ne paie que le frais rattaché à son inscription TD.
+        if ($this->typeEleve === 'externe_td') {
+            $this->chargerFraisTdExterne();
+            return;
+        }
+
         $lignes = DB::table('annee_classe_frais')
             ->join('frais', 'frais.id', '=', 'annee_classe_frais.frais_id')
             ->leftJoin('categories_recettes', 'categories_recettes.id', '=', 'frais.categorie_recette_id')
@@ -537,6 +644,70 @@ private function chargerClasses()
         }
     }
 
+
+    private function chargerFraisTdExterne(): void
+    {
+        $this->fraisDisponibles = [];
+        $this->achats = [];
+        $this->resetTotaux();
+
+        if (!$this->inscriptionTdExterneId || !$this->anneeId || !$this->classeId) {
+            return;
+        }
+
+        $inscription = DB::table('inscriptions_td_externes as ite')
+            ->join('frais as f', 'f.id', '=', 'ite.frais_id')
+            ->join('annee_classe_frais as acf', function ($join) {
+                $join->on('acf.frais_id', '=', 'ite.frais_id')
+                    ->on('acf.annee_id', '=', 'ite.annee_id')
+                    ->on('acf.classe_id', '=', 'ite.classe_id');
+            })
+            ->leftJoin('categories_recettes as cr', 'cr.id', '=', 'f.categorie_recette_id')
+            ->where('ite.id', $this->inscriptionTdExterneId)
+            ->where('ite.annee_id', $this->anneeId)
+            ->where('ite.classe_id', $this->classeId)
+            ->where('f.categorie_recette_id', 17)
+            ->select([
+                'ite.id as inscription_id',
+                'ite.frais_id',
+                'ite.montant_total',
+                'f.nom',
+                'f.description',
+                'f.categorie_recette_id',
+                'cr.nom as categorie',
+                'cr.code as categorie_code',
+                'acf.montant as tarif_applicable',
+            ])
+            ->first();
+
+        if (!$inscription) {
+            $this->addError('inscriptionTdExterneId', 'Aucun frais TD applicable n’est associé à cette inscription.');
+            return;
+        }
+
+        $montantTotal = (float) ($inscription->montant_total ?? $inscription->tarif_applicable ?? 0);
+        $dejaPaye = (float) DB::table('paiement_achats')
+            ->where('inscription_td_externe_id', $this->inscriptionTdExterneId)
+            ->where('frais_id', $inscription->frais_id)
+            ->sum('montant');
+
+        $reste = max(0, $montantTotal - $dejaPaye);
+
+        if ($reste > 0) {
+            $this->fraisDisponibles[] = [
+                'frais_id' => (int) $inscription->frais_id,
+                'categorie_recette_id' => (int) $inscription->categorie_recette_id,
+                'categorie' => $inscription->categorie,
+                'categorie_code' => $inscription->categorie_code,
+                'nom' => $inscription->nom,
+                'description' => $inscription->description,
+                'montant' => $montantTotal,
+                'deja_paye' => $dejaPaye,
+                'reste' => $reste,
+                'selectionne' => false,
+            ];
+        }
+    }
 
     /*
     |--------------------------------------------------------------------------
@@ -794,6 +965,25 @@ private function chargerClasses()
             return false;
         }
 
+        if ($this->typeEleve === 'externe_td') {
+            if (!$this->inscriptionTdExterneId) {
+                $this->addError('inscriptionTdExterneId', 'Sélectionnez l’inscription TD de l’élève externe.');
+                return false;
+            }
+
+            $existe = DB::table('inscriptions_td_externes')
+                ->where('id', $this->inscriptionTdExterneId)
+                ->where('annee_id', $this->anneeId)
+                ->where('classe_id', $this->classeId)
+                ->where('statut', 'active')
+                ->exists();
+
+            if (!$existe) {
+                $this->addError('inscriptionTdExterneId', 'L’inscription TD externe sélectionnée est invalide.');
+                return false;
+            }
+        }
+
         return true;
     }
 
@@ -806,6 +996,11 @@ private function chargerClasses()
 
     private function traiterPaiement(string $numeroRecu, array $repartition): void
     {
+        if ($this->typeEleve === 'externe_td') {
+            $this->traiterPaiementTdExterne($numeroRecu, $repartition);
+            return;
+        }
+
         DB::transaction(function () use ($numeroRecu, $repartition): void {
             foreach ($repartition['lignes'] as $ligne) {
                 $frais = Frais::find($ligne['frais_id']);
@@ -894,6 +1089,69 @@ private function chargerClasses()
     }
 
 
+    private function traiterPaiementTdExterne(string $numeroRecu, array $repartition): void
+    {
+        DB::transaction(function () use ($numeroRecu, $repartition): void {
+            $inscription = DB::table('inscriptions_td_externes as ite')
+                ->join('eleves_externes_td as eet', 'eet.id', '=', 'ite.eleve_externe_td_id')
+                ->where('ite.id', $this->inscriptionTdExterneId)
+                ->where('ite.annee_id', $this->anneeId)
+                ->where('ite.classe_id', $this->classeId)
+                ->where('ite.statut', 'active')
+                ->select('ite.*', 'eet.nom', 'eet.prenom', 'eet.telephone')
+                ->lockForUpdate()
+                ->first();
+
+            if (!$inscription) {
+                throw new \RuntimeException('Inscription TD externe introuvable ou inactive.');
+            }
+
+            foreach ($repartition['lignes'] as $ligne) {
+                if ((int) $ligne['frais_id'] !== (int) $inscription->frais_id
+                    || (int) $ligne['categorie_recette_id'] !== 17) {
+                    throw new \RuntimeException('Seuls les frais TD sont autorisés pour un élève externe.');
+                }
+
+                $tarif = (float) $inscription->montant_total;
+                $dejaPaye = (float) DB::table('paiement_achats')
+                    ->where('inscription_td_externe_id', $inscription->id)
+                    ->where('frais_id', $ligne['frais_id'])
+                    ->sum('montant');
+
+                $versement = (float) $ligne['montant'];
+                if ($versement <= 0 || $dejaPaye + $versement > $tarif + 0.001) {
+                    throw new \RuntimeException('Le versement dépasse le reste dû pour les frais TD.');
+                }
+
+                $paiementAchat = PaiementAchat::create([
+                    'numero_recu' => $numeroRecu,
+                    'inscription_id' => null,
+                    'inscription_td_externe_id' => $inscription->id,
+                    'nom' => trim($inscription->nom),
+                    'prenom' => trim($inscription->prenom),
+                    'telephone' => $inscription->telephone ? trim($inscription->telephone) : null,
+                    'frais_id' => $ligne['frais_id'],
+                    'categorie_recette_id' => 17,
+                    'montant' => $versement,
+                    'mode_paiement' => $this->modePaiement,
+                    'date_paiement' => $this->datePaiement,
+                ]);
+
+                Recette::create([
+                    'date_paiement' => $this->datePaiement,
+                    'montant_verse' => $versement,
+                    'paiement_id' => null,
+                    'paiement_achat_id' => $paiementAchat->id,
+                    'inscription_id' => null,
+                    'mode_paiement' => $this->modePaiement,
+                    'numero_recu' => $numeroRecu,
+                    'categorie_recette_id' => 17,
+                    'annee_id' => $this->anneeId,
+                ]);
+            }
+        });
+    }
+
     /*
     |--------------------------------------------------------------------------
     | IMPRIMER REÇU
@@ -920,6 +1178,48 @@ private function chargerClasses()
         }
 
         $premier = $paiements->first();
+
+        if (!empty($premier->inscription_td_externe_id)) {
+            $inscriptionTd = DB::table('inscriptions_td_externes as ite')
+                ->join('eleves_externes_td as eet', 'eet.id', '=', 'ite.eleve_externe_td_id')
+                ->join('classes as c', 'c.id', '=', 'ite.classe_id')
+                ->join('annees as a', 'a.id', '=', 'ite.annee_id')
+                ->where('ite.id', $premier->inscription_td_externe_id)
+                ->select('ite.*', 'eet.matricule', 'eet.nom as eleve_nom', 'eet.prenom as eleve_prenom', 'c.nom as classe_nom', 'a.nom as annee_nom')
+                ->first();
+
+            $detailsTd = $paiements->map(fn ($p) => [
+                'nom' => ($p->categorieRecette?->nom ?? 'TD') . ' - ' . ($p->frais?->nom ?? 'Frais TD'),
+                'montant' => (float) $p->montant,
+            ])->toArray();
+
+            $totalRecuTd = (float) $paiements->sum('montant');
+            $totalPayeTd = (float) DB::table('paiement_achats')
+                ->where('inscription_td_externe_id', $premier->inscription_td_externe_id)
+                ->where('frais_id', $premier->frais_id)
+                ->sum('montant');
+            $totalFraisTd = (float) ($inscriptionTd->montant_total ?? 0);
+            $resteTd = max(0, $totalFraisTd - $totalPayeTd);
+
+            $ticketTd = (new RecuThermiqueService())->generate([
+                'numero' => $numeroRecu,
+                'date' => $premier->date_paiement ? \Carbon\Carbon::parse($premier->date_paiement)->format('d/m/Y') : now()->format('d/m/Y'),
+                'eleve' => trim(($inscriptionTd->eleve_nom ?? $premier->nom) . ' ' . ($inscriptionTd->eleve_prenom ?? $premier->prenom)),
+                'matricule' => $inscriptionTd->matricule ?? '-',
+                'classe' => $inscriptionTd->classe_nom ?? '-',
+                'annee' => $inscriptionTd->annee_nom ?? '-',
+                'details' => $detailsTd,
+                'total_recu' => $totalRecuTd,
+                'total_paye' => $totalPayeTd,
+                'total_frais' => $totalFraisTd,
+                'reste' => $resteTd,
+                'statut' => $resteTd <= 0 ? 'SOLDE' : 'PARTIEL',
+                'mode_paiement' => $premier->mode_paiement ?? '-',
+            ]);
+
+            (new ThermalPrinterService('Xprinter_POS58'))->print($ticketTd);
+            return;
+        }
         $details = $paiements->map(fn($p) => [
             'nom' => ($p->categorieRecette?->nom ?? '') . ' - ' . ($p->frais?->nom ?? 'Frais'),
             'montant' => (float) $p->montant,
@@ -930,17 +1230,22 @@ private function chargerClasses()
         $totalDejaPaye = 0;
 
         foreach ($paiements as $paiement) {
-            $inscriptionFrais = DB::table('inscription_frais')
-                ->where('inscription_id', $paiement->inscription_id)
-                ->where('frais_id', $paiement->frais_id)
-                ->where('annee_id', $this->anneeId)
-                ->first();
 
-            if ($inscriptionFrais) {
-                $totalFraisSelectionnes += (float) $inscriptionFrais->montant_frais;
-                $totalDejaPaye += (float) $inscriptionFrais->montant_paye;
-            }
-        }
+    // Utiliser l'année de l'inscription associée à ce paiement
+    $anneePaiementId = $paiement->inscription?->annee_id
+        ?? $this->anneeId;
+
+    $inscriptionFrais = DB::table('inscription_frais')
+        ->where('inscription_id', $paiement->inscription_id)
+        ->where('frais_id', $paiement->frais_id)
+        ->where('annee_id', $anneePaiementId)
+        ->first();
+
+    if ($inscriptionFrais) {
+        $totalFraisSelectionnes += (float) $inscriptionFrais->montant_frais;
+        $totalDejaPaye += (float) $inscriptionFrais->montant_paye;
+    }
+}
 
         $fraisIds = $paiements->pluck('frais_id')->unique()->values();
         $totalPayeHistorique = PaiementAchat::query()
@@ -972,22 +1277,196 @@ private function chargerClasses()
         $printer->print($ticket);
     }
 
+/*
+|--------------------------------------------------------------------------
+| CHARGER LES ANCIENS REÇUS
+|--------------------------------------------------------------------------
+*/
 
+private function chargerAnciensRecus(): void
+{
+    $this->anciensRecus = [];
+
+    if (!$this->inscriptionId) {
+        return;
+    }
+
+    // Retrouver l'inscription sélectionnée et l'identifiant de l'élève
+    $inscription = Inscription::with('eleve')
+        ->find($this->inscriptionId);
+
+    if (!$inscription || !$inscription->eleve) {
+        return;
+    }
+
+    $eleveId = $inscription->eleve_id;
+
+    // Rechercher les paiements de cet élève pour toutes ses inscriptions
+    $paiements = PaiementAchat::query()
+        ->with([
+            'frais',
+            'categorieRecette',
+            'inscription.eleve',
+            'inscription.classe',
+            'inscription.annee',
+        ])
+        ->whereNotNull('numero_recu')
+        ->whereHas('inscription', function ($query) use ($eleveId) {
+            $query->where('eleve_id', $eleveId);
+        })
+        ->orderByDesc('date_paiement')
+        ->orderByDesc('id')
+        ->get();
+
+    // Regrouper les lignes par numéro de reçu
+    $this->anciensRecus = $paiements
+        ->groupBy('numero_recu')
+        ->map(function ($lignes, $numeroRecu) {
+
+            $premier = $lignes->first();
+
+            $inscriptionRecu = $premier->inscription;
+
+            return [
+                'numero_recu' => $numeroRecu,
+
+                'date' => $premier->date_paiement
+                    ? \Carbon\Carbon::parse($premier->date_paiement)->format('d/m/Y')
+                    : '-',
+
+                'annee' => $inscriptionRecu?->annee?->nom ?? '-',
+
+                'classe' => $inscriptionRecu?->classe?->nom ?? '-',
+
+                'eleve' => trim(
+                    ($premier->nom ?? '') . ' ' . ($premier->prenom ?? '')
+                ),
+
+                'frais' => $lignes
+                    ->map(function ($paiement) {
+                        return $paiement->frais?->nom ?? 'Frais';
+                    })
+                    ->unique()
+                    ->implode(', '),
+
+                'mode_paiement' => $premier->mode_paiement ?? '-',
+
+                'total' => (float) $lignes->sum('montant'),
+            ];
+        })
+        ->values()
+        ->toArray();
+}
+
+/*
+|--------------------------------------------------------------------------
+| RÉIMPRIMER UN ANCIEN REÇU
+|--------------------------------------------------------------------------
+*/
+
+public function reimprimerAncienRecu(string $numeroRecu): void
+{
+    $this->resetErrorBag('anciensRecus');
+
+    if (!$this->inscriptionId) {
+        $this->addError(
+            'anciensRecus',
+            'Veuillez d’abord sélectionner un élève.'
+        );
+
+        return;
+    }
+
+    $inscription = Inscription::find($this->inscriptionId);
+
+    if (!$inscription) {
+        $this->addError(
+            'anciensRecus',
+            'L’inscription sélectionnée est introuvable.'
+        );
+
+        return;
+    }
+
+    // Vérifier que le reçu appartient à l'élève sélectionné
+    $recuExiste = PaiementAchat::query()
+        ->where('numero_recu', $numeroRecu)
+        ->whereHas('inscription', function ($query) use ($inscription) {
+            $query->where('eleve_id', $inscription->eleve_id);
+        })
+        ->exists();
+
+    if (!$recuExiste) {
+        $this->addError(
+            'anciensRecus',
+            'Ce reçu est introuvable ou ne correspond pas à cet élève.'
+        );
+
+        return;
+    }
+
+    try {
+        // Réutiliser le service d'impression déjà présent
+        $this->imprimerRecu($numeroRecu);
+
+        $this->dispatch(
+            'impressionReussie',
+            numeroRecu: $numeroRecu
+        );
+
+        $this->successMessage = "Réimpression du reçu {$numeroRecu} lancée.";
+
+        Log::info('Ancien reçu réimprimé', [
+            'numero_recu' => $numeroRecu,
+            'eleve_id' => $inscription->eleve_id,
+        ]);
+
+    } catch (\Throwable $e) {
+
+        Log::error('Erreur de réimpression d’un ancien reçu', [
+            'numero_recu' => $numeroRecu,
+            'message' => $e->getMessage(),
+        ]);
+
+        $this->addError(
+            'anciensRecus',
+            'Erreur lors de la réimpression du reçu.'
+        );
+
+        $this->dispatch(
+            'impressionEchouee',
+            numeroRecu: $numeroRecu,
+            message: $e->getMessage()
+        );
+    }
+}
     /*
     |--------------------------------------------------------------------------
     | RESET
     |--------------------------------------------------------------------------
     */
 
-    private function resetApresSelection(): void
-    {
-        $this->inscriptionId = null;
-        $this->nouvelEleveId = null;
-        $this->viderFrais();
-        $this->nom = '';
-        $this->prenom = '';
-        $this->telephone = '';
-    }
+    /*
+|--------------------------------------------------------------------------
+| RESET APRÈS MODIFICATION DES FILTRES
+|--------------------------------------------------------------------------
+*/
+
+private function resetApresSelection(): void
+{
+    $this->inscriptionId = null;
+    $this->inscriptionTdExterneId = null;
+    $this->inscriptionsTdExternes = [];
+    $this->nouvelEleveId = null;
+
+    $this->anciensRecus = [];
+
+    $this->viderFrais();
+
+    $this->nom = '';
+    $this->prenom = '';
+    $this->telephone = '';
+}
 
     private function viderFrais(): void
     {

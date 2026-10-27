@@ -56,6 +56,13 @@ public function details()
 {
     return $this->hasMany(PaiementDetail::class);
 }
+public function categorieRecette()
+    {
+        return $this->belongsTo(
+            CategorieRecette::class,
+            'categorie_recette_id'
+        );
+    }
 
 
 }

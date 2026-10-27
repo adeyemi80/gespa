@@ -125,7 +125,7 @@
             @php
                 $cards2 = [
                     ['route'=>'budgets.recettes','color'=>'info','icon'=>'journal-bookmark-fill','title'=>'BUDGETS RECETTES'],
-                     ['route'=>'categories-recettes.create','color'=>'info','icon'=>'journal-bookmark-fill','title'=>'CATEGORIES DE RECETTES'],
+                     ['route'=>'categories-recettes.create','color'=>'info','icon'=>'journal-bookmark-fill','title'=>'CREER CATEGORIES DE RECETTES'],
                       ['route'=>'categories-recettes.index','color'=>'info','icon'=>'journal-bookmark-fill','title'=>'CATEGORIES'],
                      ['route'=>'budgets.synthese','color'=>'info','icon'=>'journal-bookmark-fill','title'=>'BUDGET SYNTHESE'],
                 ];
@@ -177,8 +177,10 @@
                     ['route'=>'types-recettes.create','color'=>'info','icon'=>'journal-bookmark-fill','title'=>'CREER LES TYPES DE RECETTES'],
                     ['route'=>'types-recettes.index','color'=>'info','icon'=>'journal-bookmark-fill','title'=>'LES TYPES DE RECETTES'],
                     ['route'=>'depenses.create','color'=>'info','icon'=>'journal-bookmark-fill','title'=>'ENREGISTRER UNE DEPENSE'],
+                    ['route'=>'finances.rapport','color'=>'info','icon'=>'journal-bookmark-fill','title'=>'RAPPORTS FINANCIERS'],
                     
 
+                    
                     ];
             @endphp
 

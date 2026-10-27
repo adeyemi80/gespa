@@ -93,7 +93,6 @@ use App\Models\Annee;
 use App\Models\Note;
 use App\Http\Controllers\GalerieController;
 use App\Http\Controllers\MediaController;
-use App\Http\Controllers\RecuPaiementController;
 //use App\Livewire\Paiements\PaiementMultiple;
 use App\Http\Livewire\AnnulationPassage;
 use App\Http\Controllers\TdRecapPdfController;
@@ -105,6 +104,8 @@ use App\Http\Controllers\TdPaiementController;
 use App\Http\Controllers\EtablissementController;
 use App\Http\Controllers\TypeRecetteController;
 use App\Livewire\Depenses\DepenseManager;
+use App\Http\Controllers\EleveExterneTdController;
+use App\Http\Controllers\InscriptionTdExterneController;
 
 
 
@@ -206,6 +207,7 @@ Route::get('/tableau/annees', [App\Http\Controllers\TableauController::class, 'a
 Route::get('/tableau/finances', [App\Http\Controllers\TableauController::class, 'finances'])->name('tableau.finances');
 Route::get('/tableau/utilisateur', [App\Http\Controllers\TableauController::class, 'utilisateur'])->name('tableau.utilisateur');
 Route::get('/tableau/investissements', [App\Http\Controllers\TableauController::class, 'investissements'])->name('tableau.investissements');
+Route::get('/enseignements/index', [App\Http\Controllers\EnseignementController::class, 'index'])->name('enseignements.index');
 Route::middleware(['auth'])->group(function () {Route::get('/tableau/accueil', [TableauController::class, 'accueil'])->name('tableau.accueil');});
 Route::get('/tableau/progtd', [App\Http\Controllers\TableauController::class, 'progtd'])->name('tableau.progtd');
 Route::get('/tableau/inscription', [App\Http\Controllers\TableauController::class, 'inscription'])->name('tableau.inscription');
@@ -294,13 +296,14 @@ Route::resource('inscription-frais', InscriptionFraisController::class);//->exce
 
 
 // Page de paiement multiple (Livewire)
-Route::get( '/paiements/achat', PaiementAchatLive::class)->name('paiements.achat');
+//Route::get( '/paiements/achat', PaiementAchatLive::class)->name('paiements.achat');
 Route::get('/paiements/fraisFilter', [PaiementController::class, 'fraisFilter'])->name('paiements.fraisFilter');
 Route::get('/paiements/paiement', [PaiementController::class, 'paiement'])->name('paiements.paiement');
 Route::get('/paiements/achat', [PaiementController::class, 'achat'])->name('paiements.achat');
+//Route::get('/paiements/recherche', [PaiementController::class, 'recherche'])->name('paiements.recherche');
 Route::get('/paiements/filtre', [PaiementController::class, 'filtre'])->name('paiements.filtre');
 Route::delete('/paiements/achat/{numeroRecu}',[PaiementController::class, 'destroyAchat'])->name('paiements.achat.destroy');
-Route::get('/paiements/ticket/{numeroLot}', [RecuPaiementController::class, 'ticket'])->name('paiements.ticket');
+//Route::get('/paiements/ticket/{numeroLot}', [RecuPaiementController::class, 'ticket'])->name('paiements.ticket');
 //Route::get('/paiements', fn() => view('paiements.index'))->name('paiements.index');
 Route::get('paiements/historique', [PaiementController::class, 'historique']) ->name('paiements.historique');//->middleware(['auth', 'verified', 'role:admin,directeur']);
 Route::get('/paiements/export/pdf', [PaiementController::class, 'exportPdf'])->name('paiements.export.pdf');//->middleware(['auth', 'verified', 'role:admin,directeur']);
@@ -441,6 +444,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('pieces-justificatives/{pieceJustificative}/telecharger', [PieceJustificativeController::class, 'telecharger'])->name('pieces-justificatives.telecharger');
     Route::delete('pieces-justificatives/{pieceJustificative}', [PieceJustificativeController::class, 'destroy']) ->name('pieces-justificatives.destroy');});
 Route::get('/finances', [FinanceController::class, 'index'])->name('finances.index');//->middleware(['auth', 'verified', 'role:admin,directeur,comptable']);
+Route::get('/finances/rapport', [FinanceController::class, 'rapport'])->name('finances.rapport');
 Route::resource('categories', App\Http\Controllers\CategorieController::class)->parameters(['categories' => 'categorie']);
 Route::resource('transactions', App\Http\Controllers\TransactionController::class);
 Route::resource('comptes', App\Http\Controllers\CompteController::class);
@@ -537,6 +541,17 @@ Route::get('/roles/{role}/pdf', [RoleController::class, 'exportPdf'])->name('rol
 
 
 
+
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/inscriptions-td-externes/frais-disponibles',[InscriptionTdExterneController::class, 'fraisDisponibles'] )->name('inscriptions-td-externes.frais-disponibles');
+    Route::resource(  'inscriptions-td-externes',  InscriptionTdExterneController::class )->parameters([  'inscriptions-td-externes' => 'inscriptions_td_externe', ]);
+});
+Route::middleware(['auth'])->group(function () {
+    Route::get(  '/eleves-externes-td/frais-disponibles', [EleveExterneTdController::class, 'fraisDisponibles']  )->name('eleves-externes-td.frais-disponibles');
+    Route::resource('eleves-externes-td', EleveExterneTdController::class)->parameters([    'eleves-externes-td' => 'eleves_externes_td', ]);
+    Route::patch('/eleves-externes-td/{eleves_externes_td}/statut',[EleveExterneTdController::class, 'changerStatut'] )->name('eleves-externes-td.statut');
+});
 Route::get('/td/recap/pdf', [TdRecapPdfController::class, 'export'])->name('td.recap.pdf');
 Route::get('/td/recap/classe/pdf', [TdRecapPdfController::class, 'classe'])->name('td.recap.classe.pdf');
 Route::get('/td/recap/toutes-classes/pdf', [TdRecapPdfController::class, 'toutesClasses'])->name('td.recap.toutes-classes.pdf');

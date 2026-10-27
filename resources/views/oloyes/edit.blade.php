@@ -190,7 +190,7 @@
 
                 <div class="d-flex justify-content-end gap-2">
 
-                    <a href="{{ route('oloye.index') }}" class="btn btn-secondary btn-lg">
+                    <a href="{{ route('oloyes.index') }}" class="btn btn-secondary btn-lg">
                         Annuler
                     </a>
 

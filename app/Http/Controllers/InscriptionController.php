@@ -63,7 +63,7 @@ class InscriptionController extends Controller
             'eleve_id'  => 'required|exists:eleves,id',
             'classe_id' => 'required|exists:classes,id',
             'annee_id'  => 'required|exists:annees,id',
-            'note_id'   => 'required|exists:notes,id',
+           
         ]);
 
         // 2️⃣ Pas de double inscription la même année
@@ -135,67 +135,228 @@ class InscriptionController extends Controller
     }
 
     public function edit(Inscription $inscription)
-    {
-        return view('inscriptions.edit', [
-            'inscription' => $inscription,
-            'eleves'      => Eleve::all(),
-            'classes'     => Classe::all(),
-            'annees'      => Annee::all(),
-            'notes'       => Note::all(),
-        ]);
-    }
-
-    public function update(Request $request, Inscription $inscription)
 {
+    return view('inscriptions.edit', [
+        'inscription' => $inscription,
+        'eleves'      => Eleve::all(),
+        'cycles'      => Cycle::all(),
+        'classes'     => Classe::all(),
+        'annees'      => Annee::all(),
+        
+    ]);
+}
+
+   public function update(Request $request, Inscription $inscription)
+{
+    // ============================================================
+    // 1. VALIDATION DES DONNÉES
+    // ============================================================
+
     $request->validate([
         'eleve_id'         => 'required|exists:eleves,id',
+        'cycle_id'         => 'required|exists:cycles,id',
         'classe_id'        => 'required|exists:classes,id',
         'annee_id'         => 'required|exists:annees,id',
-        'note_id'          => 'required|exists:notes,id',
         'date_inscription' => 'required|date',
     ]);
 
-    $inscription->update($request->only([
-        'eleve_id',
-        'classe_id',
-        'annee_id',
-        'note_id',
-        'date_inscription',
-    ]));
+    // ============================================================
+    // 2. VÉRIFIER QUE LA CLASSE APPARTIENT AU CYCLE
+    // ============================================================
 
-    // ➕ Génération automatique des frais manquants
-    // (uniquement les frais pas encore affectés à cette inscription)
-    $classe = Classe::with('frais')->findOrFail($request->classe_id);
+    $classe = Classe::where('id', $request->classe_id)
+        ->where('cycle_id', $request->cycle_id)
+        ->first();
 
-    $fraisExistants = DB::table('inscription_frais')
-        ->where('inscription_id', $inscription->id)
-        ->pluck('frais_id')
-        ->toArray();
-
-    foreach ($classe->frais as $frais) {
-        if (in_array($frais->id, $fraisExistants)) {
-            continue; // ← évite les doublons si les frais existent déjà
-        }
-
-        DB::table('inscription_frais')->insert([
-            'inscription_id' => $inscription->id,
-            'frais_id'       => $frais->id,
-            'annee_id'       => $request->annee_id,
-            'montant_frais'  => $frais->montant,
-            'montant_paye'   => 0,
-            'reste'          => $frais->montant,
-            'statut'         => 'non_payé',
-            'est_arriere'    => false,
-            'created_at'     => now(),
-            'updated_at'     => now(),
-        ]);
+    if (!$classe) {
+        return back()
+            ->withErrors([
+                'classe_id' => 'La classe sélectionnée ne appartient pas au cycle choisi.'
+            ])
+            ->withInput();
     }
+
+    // ============================================================
+    // 3. VÉRIFIER QU'IL N'Y A PAS D'AUTRE INSCRIPTION
+    //    POUR LE MÊME ÉLÈVE ET LA MÊME ANNÉE
+    // ============================================================
+
+    $existe = Inscription::where('eleve_id', $request->eleve_id)
+        ->where('annee_id', $request->annee_id)
+        ->where('id', '!=', $inscription->id)
+        ->exists();
+
+    if ($existe) {
+        return back()
+            ->withErrors([
+                'eleve_id' => 'Cet élève est déjà inscrit pour cette année scolaire.'
+            ])
+            ->withInput();
+    }
+
+    // ============================================================
+    // 4. RÉCUPÉRER LES FRAIS CONFIGURÉS POUR
+    //    ANNÉE + CLASSE
+    // ============================================================
+
+    $fraisClasseAnnee = DB::table('annee_classe_frais')
+        ->where('annee_id', $request->annee_id)
+        ->where('classe_id', $request->classe_id)
+        ->get();
+
+    if ($fraisClasseAnnee->isEmpty()) {
+        return back()
+            ->withErrors([
+                'classe_id' =>
+                    'Aucun frais n\'est configuré pour cette année scolaire et cette classe.'
+            ])
+            ->withInput();
+    }
+
+    // ============================================================
+    // 5. VÉRIFIER QU'AUCUN FRAIS N'A UN MONTANT NULL
+    // ============================================================
+
+    foreach ($fraisClasseAnnee as $frais) {
+
+        if ($frais->montant === null) {
+
+            $nomFrais = DB::table('frais')
+                ->where('id', $frais->frais_id)
+                ->value('nom');
+
+            $nomFrais = $nomFrais ?? 'Frais ID ' . $frais->frais_id;
+
+            return back()
+                ->withErrors([
+                    'classe_id' =>
+                        "Le montant du frais « {$nomFrais} » n'est pas défini pour cette année et cette classe."
+                ])
+                ->withInput();
+        }
+    }
+
+    // ============================================================
+    // 6. TRANSACTION
+    // ============================================================
+
+    try {
+
+        DB::transaction(function () use (
+            $request,
+            $inscription,
+            $fraisClasseAnnee
+        ) {
+
+            // ========================================================
+            // 6.1 METTRE À JOUR L'INSCRIPTION
+            // ========================================================
+
+            $inscription->update([
+                'eleve_id'         => $request->eleve_id,
+                'classe_id'        => $request->classe_id,
+                'annee_id'         => $request->annee_id,
+                'date_inscription' => $request->date_inscription,
+            ]);
+
+            // ========================================================
+            // 6.2 RÉCUPÉRER LES FRAIS DÉJÀ ASSOCIÉS
+            // ========================================================
+
+            $fraisExistants = DB::table('inscription_frais')
+                ->where('inscription_id', $inscription->id)
+                ->get()
+                ->keyBy('frais_id');
+
+            // ========================================================
+            // 6.3 AJOUTER OU METTRE À JOUR LES FRAIS
+            // ========================================================
+
+            foreach ($fraisClasseAnnee as $frais) {
+
+                $montant = (float) $frais->montant;
+
+                // ----------------------------------------------------
+                // Le frais existe déjà pour cette inscription
+                // ----------------------------------------------------
+
+                if (isset($fraisExistants[$frais->frais_id])) {
+
+                    $fraisInscription = $fraisExistants[$frais->frais_id];
+
+                    $montantPaye = (float) $fraisInscription->montant_paye;
+
+                    // Le montant payé ne peut pas dépasser
+                    // le nouveau montant du frais.
+                    if ($montantPaye > $montant) {
+                        $montantPaye = $montant;
+                    }
+
+                    $reste = max(0, $montant - $montantPaye);
+
+                    // Déterminer automatiquement le statut
+                    if ($montantPaye <= 0) {
+                        $statut = 'non_payé';
+                    } elseif ($montantPaye < $montant) {
+                        $statut = 'partiellement_payé';
+                    } else {
+                        $statut = 'soldé';
+                    }
+
+                    DB::table('inscription_frais')
+                        ->where('id', $fraisInscription->id)
+                        ->update([
+                            'montant_frais' => $montant,
+                            'montant_paye'  => $montantPaye,
+                            'reste'         => $reste,
+                            'statut'        => $statut,
+                            'updated_at'    => now(),
+                        ]);
+                }
+
+                // ----------------------------------------------------
+                // Le frais n'existe pas encore
+                // ----------------------------------------------------
+
+                else {
+
+                    DB::table('inscription_frais')->insert([
+                        'inscription_id' => $inscription->id,
+                        'frais_id'       => $frais->frais_id,
+                        'annee_id'       => $request->annee_id,
+                        'montant_frais'  => $montant,
+                        'montant_paye'   => 0,
+                        'reste'          => $montant,
+                        'statut'         => 'non_payé',
+                        'est_arriere'    => false,
+                        'created_at'     => now(),
+                        'updated_at'     => now(),
+                    ]);
+                }
+            }
+        });
+
+    } catch (\Exception $e) {
+
+        return back()
+            ->withErrors([
+                'error' => 'Erreur lors de la mise à jour de l\'inscription : '
+                    . $e->getMessage()
+            ])
+            ->withInput();
+    }
+
+    // ============================================================
+    // 7. REDIRECTION
+    // ============================================================
 
     return redirect()
         ->route('inscriptions.index')
-        ->with('success', 'Inscription mise à jour avec succès.');
+        ->with(
+            'success',
+            'Inscription et frais associés mis à jour avec succès.'
+        );
 }
-
     public function destroy(Inscription $inscription)
     {
         $inscription->delete();

@@ -438,7 +438,8 @@
 
                                         <td class="text-center">
 
-                                            <span class="badge bg-white">
+                                            <span class="badge bg-white
+                                            ">
 
                                                 {{ $nombrePaiements }}
 

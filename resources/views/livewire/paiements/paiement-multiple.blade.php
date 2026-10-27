@@ -321,7 +321,218 @@
                 </select>
 
             </div>
+{{-- ========================================================= --}}
+{{-- ANCIENS REÇUS DE L'ÉLÈVE : OUVRIR / FERMER AU CLIC --}}
+{{-- ========================================================= --}}
 
+<div class="card border-0 shadow-sm rounded-4 mt-4 overflow-hidden">
+
+    {{-- EN-TÊTE CLIQUABLE --}}
+    <div
+        class="card-header bg-white border-0 p-3"
+        role="button"
+        data-bs-toggle="collapse"
+        data-bs-target="#anciensRecusCollapse"
+        aria-expanded="false"
+        aria-controls="anciensRecusCollapse"
+        style="cursor: pointer;"
+    >
+
+        <div class="d-flex justify-content-between align-items-center gap-3">
+
+            <div>
+                <h5 class="mb-1">
+                    <i class="bi bi-receipt me-2 text-primary"></i>
+                    Anciens reçus de paiement
+                </h5>
+
+                <p class="text-muted small mb-0">
+                    Consultez et réimprimez les reçus des années scolaires
+                    précédentes et de l'année sélectionnée.
+                </p>
+            </div>
+
+            {{-- Icône indiquant l'ouverture ou la fermeture --}}
+            <i
+                class="bi bi-chevron-down text-primary fs-5"
+                id="iconeAnciensRecus"
+            ></i>
+
+        </div>
+
+    </div>
+
+    {{-- CONTENU REPLIABLE --}}
+    <div class="collapse" id="anciensRecusCollapse">
+
+        <div class="card-body">
+
+            @error('recus')
+                <div class="alert alert-danger">
+                    {{ $message }}
+                </div>
+            @enderror
+
+            @if (!$inscriptionId)
+
+                <div class="alert alert-info mb-0">
+                    Sélectionnez une année, un cycle, une classe
+                    et un élève.
+                </div>
+
+            @elseif (empty($anciensRecus))
+
+                <div class="alert alert-secondary mb-0">
+                    Aucun reçu trouvé pour cet élève.
+                </div>
+
+            @else
+
+                <div class="table-responsive">
+
+                    <table class="table table-hover table-striped align-middle">
+
+                        <thead class="table-light">
+                            <tr>
+                                <th>N° reçu</th>
+                                <th>Date</th>
+                                <th>Année scolaire</th>
+                                <th>Classe</th>
+                                <th>Frais</th>
+                                <th>Mode de paiement</th>
+                                <th class="text-end">Montant</th>
+                                <th class="text-center">Action</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+
+                            @foreach ($anciensRecus as $recu)
+
+                                <tr wire:key="ancien-recu-{{ md5($recu['numero_recu']) }}">
+
+                                    <td>
+                                        <span class="fw-bold">
+                                            {{ $recu['numero_recu'] }}
+                                        </span>
+                                    </td>
+
+                                    <td>
+                                        {{ $recu['date'] }}
+                                    </td>
+
+                                    <td>
+                                        {{ $recu['annee'] }}
+                                    </td>
+
+                                    <td>
+                                        {{ $recu['classe'] }}
+                                    </td>
+
+                                    <td>
+                                        {{ $recu['frais'] }}
+                                    </td>
+
+                                    <td>
+                                        {{ $recu['mode_paiement'] }}
+                                    </td>
+
+                                    <td class="text-end fw-bold">
+                                        {{ number_format($recu['total'], 0, ',', ' ') }}
+                                        FCFA
+                                    </td>
+
+                                    <td class="text-center">
+
+                                        <button
+                                            type="button"
+                                            class="btn btn-sm btn-outline-primary"
+                                            wire:click="reimprimerRecu(@js($recu['numero_recu']))"
+                                            wire:loading.attr="disabled"
+                                            wire:target="reimprimerRecu"
+                                        >
+
+                                            <span
+                                                wire:loading.remove
+                                                wire:target="reimprimerRecu"
+                                            >
+                                                <i class="bi bi-printer me-1"></i>
+                                                Imprimer
+                                            </span>
+
+                                            <span
+                                                wire:loading
+                                                wire:target="reimprimerRecu"
+                                            >
+                                                <span class="spinner-border spinner-border-sm"></span>
+                                                Impression...
+                                            </span>
+
+                                        </button>
+
+                                    </td>
+
+                                </tr>
+
+                            @endforeach
+
+                        </tbody>
+
+                        <tfoot class="table-light">
+
+                            <tr>
+                                <th colspan="6">
+                                    Nombre de reçus : {{ count($anciensRecus) }}
+                                </th>
+
+                                <th colspan="2" class="text-end">
+                                    Total des reçus affichés :
+                                    {{ number_format(
+                                        collect($anciensRecus)->sum('total'),
+                                        0,
+                                        ',',
+                                        ' '
+                                    ) }}
+                                    FCFA
+                                </th>
+                            </tr>
+
+                        </tfoot>
+
+                    </table>
+
+                </div>
+
+            @endif
+
+        </div>
+
+    </div>
+
+</div>
+
+{{-- ========================================================= --}}
+{{-- GESTION DE L'ICÔNE OUVRIR / FERMER --}}
+{{-- ========================================================= --}}
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const contenu = document.getElementById('anciensRecusCollapse');
+        const icone = document.getElementById('iconeAnciensRecus');
+
+        if (contenu && icone) {
+            contenu.addEventListener('show.bs.collapse', function () {
+                icone.classList.remove('bi-chevron-down');
+                icone.classList.add('bi-chevron-up');
+            });
+
+            contenu.addEventListener('hide.bs.collapse', function () {
+                icone.classList.remove('bi-chevron-up');
+                icone.classList.add('bi-chevron-down');
+            });
+        }
+    });
+</script>
 
 
             {{-- ================================================= --}}

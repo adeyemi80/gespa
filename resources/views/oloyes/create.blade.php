@@ -77,6 +77,7 @@
                             <option value="">-- Choisir --</option>
                             <option value="Ciment" {{ old('categorie')=='Ciment'?'selected':'' }}>Ciment</option>
                             <option value="Fer" {{ old('categorie')=='Fer'?'selected':'' }}>Fer</option>
+                             <option value="Portes" {{ old('categorie')=='Portes'?'selected':'' }}>Portes</option>
                             <option value="Sable" {{ old('categorie')=='Sable'?'selected':'' }}>Sable</option>
                             <option value="Gravier" {{ old('categorie')=='Gravier'?'selected':'' }}>Gravier</option>
                             <option value="Main d'œuvre" {{ old('categorie')=="Main d'œuvre"?'selected':'' }}>Main d'œuvre</option>

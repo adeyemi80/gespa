@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\Classe;
 
 class Inscription extends Model
 {
@@ -143,6 +144,11 @@ protected static function boot()
 public function moyenne()
 {
     return $this->hasOne(Moyenne::class, 'inscription_id');
+}
+
+public function ancienneClasse()
+{
+    return $this->belongsTo(Classe::class, 'ancienne_classe_id');
 }
 
     

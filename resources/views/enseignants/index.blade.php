@@ -32,8 +32,6 @@
                             <th>Prénom</th>
                             <th>Sexe</th>
                             <th>Email</th>
-                            <th>Classe(s)</th>
-                            <th>Matière(s)</th>
                             <th>Téléphone</th>
                             <th>Actions</th>
                         </tr>
@@ -46,14 +44,6 @@
                                 <td>{{ $enseignant->prenom }}</td>
                                 <td>{{ $enseignant->sexe }}</td>
                                 <td>{{ $enseignant->email }}</td>
-                                <td>
-    {{ $enseignant->classes->pluck('nom')->implode(', ') }}
-</td>
-                                <td>@if($enseignant->matiere)
-    {{ $enseignant->matiere->nom }}
-@else
-    <span class="text-muted">Aucune matière</span>
-@endif</td>
                                 <td>{{ $enseignant->telephone }}</td>
                                 <td class="d-flex justify-content-center gap-1">
                                     <a href="{{ route('enseignants.show', $enseignant->id) }}" class="btn btn-outline-info btn-sm" title="Voir">

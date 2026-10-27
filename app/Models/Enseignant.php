@@ -41,4 +41,17 @@ public function matiere()
     return $this->belongsTo(Matiere::class);
 }
 
+public function enseignements()
+    {
+        return $this->hasMany(Enseignement::class, 'enseignant_id');
+    }
+
+    /**
+     * Nom complet de l'enseignant.
+     */
+    public function getNomCompletAttribute()
+    {
+        return trim(($this->prenom ?? '') . ' ' . ($this->nom ?? ''));
+    }
+
 }

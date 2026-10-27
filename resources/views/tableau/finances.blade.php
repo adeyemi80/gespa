@@ -44,8 +44,9 @@
 
             @php
                 $cards2 = [
-                    ['route'=>'depenses.index','color'=>'primary','icon'=>'clipboard-check','title'=>'DEPENSES'],
-                ];
+                   
+                
+                    ];
             @endphp
 
             @foreach($cards2 as $c)

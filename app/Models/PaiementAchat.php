@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class PaiementAchat extends Model
 {
@@ -11,6 +13,7 @@ class PaiementAchat extends Model
     protected $fillable = [
         'numero_recu',
         'inscription_id',
+        'inscription_td_externe_id',
         'nom',
         'prenom',
         'telephone',
@@ -26,28 +29,48 @@ class PaiementAchat extends Model
         'date_paiement' => 'date',
     ];
 
-    public function inscription()
+    /**
+     * Inscription scolaire normale.
+     */
+    public function inscription(): BelongsTo
     {
-        return $this->belongsTo(
-            Inscription::class
-        );
+        return $this->belongsTo(Inscription::class);
     }
-    
-    public function recette()
-{
-    return $this->hasOne(
-        Recette::class,
-        'paiement_achat_id'
-    );
-}
-    public function frais()
+
+    /**
+     * Inscription aux TD d'un élève externe.
+     */
+    public function inscriptionTdExterne(): BelongsTo
     {
         return $this->belongsTo(
-            Frais::class
+            InscriptionTdExterne::class,
+            'inscription_td_externe_id'
         );
     }
 
-    public function categorieRecette()
+    /**
+     * Recette associée au paiement.
+     */
+    public function recette(): HasOne
+    {
+        return $this->hasOne(
+            Recette::class,
+            'paiement_achat_id'
+        );
+    }
+
+    /**
+     * Frais payés.
+     */
+    public function frais(): BelongsTo
+    {
+        return $this->belongsTo(Frais::class);
+    }
+
+    /**
+     * Catégorie de recette.
+     */
+    public function categorieRecette(): BelongsTo
     {
         return $this->belongsTo(
             CategorieRecette::class,

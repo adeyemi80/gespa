@@ -19,7 +19,7 @@
                 $cards2 = [
                     ['route'=>'etablissements.create','color'=>'info','icon'=>'journal-bookmark-fill','title'=>'ENREGISTRER UN ETABLISSEMNT '],
                     ['route'=>'etablissements.index','color'=>'info','icon'=>'file-earmark-arrow-up','title'=>'ETABLISSEMNTS'],
-                    ['route'=>'eleves.create','color'=>'info','icon'=>'file-earmark-arrow-up','title'=>'INSCRIPTION'],
+                    ['route'=>'eleves.create','color'=>'info','icon'=>'file-earmark-arrow-up','title'=>'ENREGISTRER UNE INSCRIPTION'],
                      ['route'=>'eleves.modifier','color'=>'info','icon'=>'journal-bookmark-fill','title'=>'MODIFIER LES INFORMATIONS D\'UN ELEVE'],
                    
                     
@@ -100,7 +100,7 @@
                 $cards2 = [
                     ['route'=>'eleves.index','color'=>'primary','icon'=>'journal-bookmark-fill','title'=>'LES ELEVES'],
                      ['route'=>'enseignants.index','color'=>'primary','icon'=>'journal-bookmark-fill','title'=>'LES ENSEIGNANTS'],
-                     ['route'=>'frais.create','color'=>'primary','icon'=>'journal-bookmark-fill','title'=>'UN CREER UN FRAIS'],
+                     ['route'=>'enseignants.create','color'=>'primary','icon'=>'journal-bookmark-fill','title'=>'UN CREER UN ENSEIGNANTS'],
                      ['route'=>'frais.annee_classe.index','color'=>'primary','icon'=>'journal-bookmark-fill','title'=>'LES FRAIS'],
                    
                 ];
@@ -148,14 +148,16 @@
         </div>
 
         {{-- 🟥 GROUPE 3 : FINANCES & GESTION --}}
-        <h6 class="section-title">💰 Finances </h6>
+        <h6 class="section-title">💰 PEDAGOGIE </h6>
         <div class="row g-3 mb-3">
 
             @php
                 $cards3 = [
-                    ['route'=>'paiements.create','color'=>'success','icon'=>'wallet2','title'=>'PAIEMENT'],
-                     ['route'=>'paiements.create-up','color'=>'success','icon'=>'wallet2','title'=>'PAIEMENTS'],
-                    
+                    ['route'=>'enseignements.index','color'=>'success','icon'=>'wallet2','title'=>'ENSEIGNEMENTS'],
+                     ['route'=>'inscriptions.index','color'=>'success','icon'=>'wallet2','title'=>'LES INSCRIPTIONS'],
+                     ['route'=>'eleves-externes-td.create','color'=>'success','icon'=>'wallet2','title'=>'ENREGISTRER LES EXTERNES AUX TD'],
+                     ['route'=>'eleves-externes-td.index','color'=>'success','icon'=>'wallet2','title'=>'LES EXTERNES AUX TD'],
+                     
 
                      
                 ];
@@ -184,6 +186,7 @@
                     ['route'=>'galeries.create','color'=>'success','icon'=>'wallet2','title'=>'CREER UNE GALERIE'],
                     ['route'=>'galeries.index','color'=>'danger','icon'=>'cash-stack','title'=>'LES GALERIES'],
                     ['route'=>'medias.index','color'=>'primary','icon'=>'person-plus-fill','title'=>'LES MEDIAS'],
+                    ['route'=>'inscriptions-td-externes.index','color'=>'primary','icon'=>'person-plus-fill','title'=>'INSCRIPTIONS DES EXTERNES AUX TD'],
                     
                 ];
             @endphp

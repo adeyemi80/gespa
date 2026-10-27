@@ -206,4 +206,16 @@ public function elevesParClasse($classeId)
     return response()->json($eleves);
 }
 
+/**
+ * Supprimer un frais associé à une inscription
+ */
+public function destroy(InscriptionFrais $inscription_frai)
+{
+    $inscription_frai->delete();
+
+    return redirect()
+        ->route('inscription-frais.index')
+        ->with('success', 'Le frais associé à l’inscription a été supprimé avec succès.');
+}
+
 }

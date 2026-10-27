@@ -63,24 +63,35 @@ class FraisController extends Controller
     /**
      * Formulaire création
      */
-    public function create()
-{
-    $classes = Classe::orderByNiveau()->get();
-    $annees = Annee::orderByDesc('id')->get();
-    $cycles = Cycle::all();
 
-    $categoriesRecettes = CategorieRecette::where('actif', true)
-        ->orderBy('nom')
-        ->get();
+public function create()
+{
+    $categoriesRecettes = CategorieRecette::with([
+        'frais' => function ($query) {
+            $query->orderBy('nom');
+        }
+    ])
+    ->where('actif', true)
+    ->orderBy('nom')
+    ->get();
+
+    // Conserve ici le chargement de tes cycles.
+    $cycles = Cycle::orderBy('nom')->get();
+
+    // Conserve ici le chargement de tes classes
+    // si ton contrôleur les utilise déjà.
+    $classes = Classe::orderBy('nom')->get();
+
+    // Conserve ici le chargement de tes années scolaires.
+    $annees = Annee::orderBy('id', 'desc')->get();
 
     return view('frais.create', compact(
-        'classes',
-        'annees',
+        'categoriesRecettes',
         'cycles',
-        'categoriesRecettes'
+        'classes',
+        'annees'
     ));
 }
-
     /**
      * Enregistrement
      */

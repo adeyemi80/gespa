@@ -70,8 +70,8 @@
                             <span class="fw-medium">{{ $recette->numero_recu ?? '—' }}</span>
                         </li>
                         <li class="list-group-item d-flex justify-content-between align-items-center py-3 px-4">
-                            <span class="text-muted">Inscription</span>
-                            <span class="fw-medium">{{ $recette->inscription->eleve->nom }}</span>
+                            <span class="text-muted">Nom et Prénom</span>
+                            <span class="fw-medium">{{ $recette->inscription->eleve->nom }} {{ $recette->inscription->eleve->prenom }}</span>
                         </li>
                         <li class="list-group-item d-flex justify-content-between align-items-center py-3 px-4">
                             <span class="text-muted">Paiement lié</span>

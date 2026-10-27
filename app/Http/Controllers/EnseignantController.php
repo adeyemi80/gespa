@@ -19,7 +19,7 @@ class EnseignantController extends Controller
 
     $enseignants = Enseignant::with(['classes', 'matiere'])
         ->latest()
-        ->paginate(10);
+        ->paginate(10000);
 
     return view('enseignants.index', compact('enseignants', 'classes', 'matieres'));
 }
@@ -44,8 +44,8 @@ class EnseignantController extends Controller
             'sexe' => 'required|in:M,F',
             'adresse' => 'nullable|string',
             'telephone' => 'nullable|string',
-            'email' => 'required|email|unique:enseignants,email',
-            'matricule' => 'required|unique:enseignants,matricule',
+            'email' => 'nullable|email|unique:enseignants,email',
+            'matricule' => 'nullable|unique:enseignants,matricule',
         ]);
 
         Enseignant::create($request->all());

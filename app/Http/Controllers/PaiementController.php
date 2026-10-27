@@ -406,6 +406,7 @@ public function achat()
 {
     return view('paiements.achat');
 }
+
 public function fraisFilter()
 {
     return view('paiements.fraisFilter');
@@ -416,84 +417,180 @@ public function filtre()
 }
 
 
-    public function update(Request $request, $id)
+   public function update(Request $request, $id)
 {
-    //dd($request->all());
-    $request->validate([
+    // 1. Validation des données reçues
+    $validated = $request->validate([
         'inscription_id' => 'required|exists:inscriptions,id',
         'frais_id'       => 'required|exists:frais,id',
         'montant_verse'  => 'required|numeric|min:1',
         'mode_paiement'  => 'required|string',
         'date_paiement'  => 'required|date',
-        //'annee_id'       => 'required|exists:annees,id',
     ]);
 
-    $paiement = Paiement::findOrFail($id);
+    // 2. Récupérer le paiement existant et son inscription
+    $paiement = Paiement::with('inscription')->findOrFail($id);
 
-    // 🔐 Sécurité année
-    $inscription = Inscription::where('id', $request->inscription_id)
-        ->where('annee_id', $request->annee_id)
-        ->first();
+    // 3. Vérifier que le paiement possède une inscription
+    $inscription = Inscription::find($validated['inscription_id']);
 
     if (!$inscription) {
-        return back()->withErrors("❌ Inscription invalide pour cette année.");
+        return back()
+            ->withErrors([
+                'inscription_id' => '❌ Inscription introuvable.',
+            ])
+            ->withInput();
     }
 
-    DB::transaction(function () use ($request, $inscription, $paiement) {
+    /*
+    |--------------------------------------------------------------------------
+    | Vérification de cohérence
+    |--------------------------------------------------------------------------
+    | Lors de la modification, on conserve l'inscription et les frais
+    | initialement associés au paiement.
+    */
 
-        // Récupère la ligne actuelle d'inscription_frais
-        $ligne = DB::table('inscription_frais')
-            ->where('inscription_id', $inscription->id)
-            ->where('frais_id', $request->frais_id)
-            ->where('annee_id', $request->annee_id)
-            ->lockForUpdate()
-            ->first();
+    if (
+        (int) $paiement->inscription_id !== (int) $inscription->id ||
+        (int) $paiement->frais_id !== (int) $validated['frais_id']
+    ) {
+        return back()
+            ->withErrors([
+                'inscription_id' => '❌ L’inscription ou les frais ne correspondent pas au paiement initial.',
+            ])
+            ->withInput();
+    }
 
-        if (!$ligne) {
-            throw new \Exception("Ce frais n’est pas initialisé.");
-        }
+    // 4. Récupérer l'année scolaire depuis l'inscription
+    $anneeId = $inscription->annee_id;
 
-        // Calculer le nouveau montant payé en tenant compte de l'ancien paiement
-        $ancienMontant = $paiement->montant_verse;
-        $nouveauPaye = $ligne->montant_paye - $ancienMontant + $request->montant_verse;
+    if (!$anneeId) {
+        return back()
+            ->withErrors([
+                'annee_id' => '❌ Aucune année scolaire associée à cette inscription.',
+            ])
+            ->withInput();
+    }
 
-        if ($nouveauPaye > $ligne->montant_frais) {
-            throw new \Exception("Montant supérieur au reste à payer.");
-        }
+    try {
 
-        $reste = $ligne->montant_frais - $nouveauPaye;
+        DB::transaction(function () use (
+            $validated,
+            $paiement,
+            $inscription,
+            $anneeId
+        ) {
 
-        // Mettre à jour le paiement
-        $paiement->update([
-            'montant_verse' => $request->montant_verse,
-            'mode_paiement' => $request->mode_paiement,
-            'date_paiement' => $request->date_paiement,
-        ]);
+            // 5. Verrouiller la ligne de frais concernée
+            $ligne = DB::table('inscription_frais')
+                ->where('inscription_id', $inscription->id)
+                ->where('frais_id', $paiement->frais_id)
+                ->where('annee_id', $anneeId)
+                ->lockForUpdate()
+                ->first();
 
-        // Mettre à jour la table inscription_frais
-        DB::table('inscription_frais')
-            ->where('id', $ligne->id)
-            ->update([
-                'montant_paye' => $nouveauPaye,
-                'reste'        => $reste,
-                'statut'       => $reste == 0 ? 'soldé' : 'partiellement_payé',
-                'updated_at'   => now(),
+            if (!$ligne) {
+                throw new \RuntimeException(
+                    '❌ Aucun frais initialisé pour cette inscription et cette année.'
+                );
+            }
+
+            // 6. Vérifier la cohérence de l'ancien paiement
+            $ancienMontant = (float) $paiement->montant_verse;
+            $nouveauMontant = (float) $validated['montant_verse'];
+
+            $montantPayeActuel = (float) $ligne->montant_paye;
+            $montantTotalFrais = (float) $ligne->montant_frais;
+
+            if ($montantPayeActuel < $ancienMontant) {
+                throw new \RuntimeException(
+                    '❌ Incohérence détectée dans les montants enregistrés.'
+                );
+            }
+
+            // 7. Recalculer le montant payé en remplaçant l'ancien paiement
+            $nouveauPaye = $montantPayeActuel
+                - $ancienMontant
+                + $nouveauMontant;
+
+            // Tolérance pour les éventuels arrondis décimaux
+            if ($nouveauPaye > $montantTotalFrais + 0.001) {
+                throw new \RuntimeException(
+                    '❌ Le montant total payé dépasserait le montant des frais.'
+                );
+            }
+
+            // Éviter un reste légèrement négatif dû aux arrondis
+            $nouveauPaye = min($nouveauPaye, $montantTotalFrais);
+
+            $reste = max(0, $montantTotalFrais - $nouveauPaye);
+
+            // 8. Déterminer le statut des frais
+            if ($reste <= 0.001) {
+                $reste = 0;
+                $statut = 'soldé';
+            } elseif ($nouveauPaye > 0) {
+                $statut = 'partiellement_payé';
+            } else {
+                $statut = 'impayé';
+            }
+
+            // 9. Mettre à jour le paiement
+            $paiement->update([
+                'montant_verse' => $nouveauMontant,
+                'mode_paiement' => $validated['mode_paiement'],
+                'date_paiement' => $validated['date_paiement'],
             ]);
 
-        // Mettre à jour la recette associée
-        $recette = Recette::where('paiement_id', $paiement->id)->first();
-        if ($recette) {
-            $recette->update([
-                'montant_verse' => $paiement->montant_verse,
-                'date_paiement' => $paiement->date_paiement,
-                'mode_paiement' => $paiement->mode_paiement,
-            ]);
-        }
-    });
+            // 10. Mettre à jour les frais de l'inscription
+            DB::table('inscription_frais')
+                ->where('id', $ligne->id)
+                ->update([
+                    'montant_paye' => $nouveauPaye,
+                    'reste'        => $reste,
+                    'statut'       => $statut,
+                    'updated_at'   => now(),
+                ]);
 
-    return back()->with('success', '✅ Paiement mis à jour avec succès.');
+            // 11. Mettre à jour la recette associée au paiement
+            $recette = Recette::where(
+                'paiement_id',
+                $paiement->id
+            )->first();
+
+            if ($recette) {
+                $recette->update([
+                    'montant_verse' => $nouveauMontant,
+                    'date_paiement' => $validated['date_paiement'],
+                    'mode_paiement' => $validated['mode_paiement'],
+                ]);
+            }
+        });
+
+        return back()->with(
+            'success',
+            '✅ Paiement mis à jour avec succès.'
+        );
+
+    } catch (\RuntimeException $e) {
+
+        return back()
+            ->withErrors([
+                'paiement' => $e->getMessage(),
+            ])
+            ->withInput();
+
+    } catch (\Throwable $e) {
+
+        report($e);
+
+        return back()
+            ->withErrors([
+                'paiement' => '❌ Une erreur est survenue lors de la mise à jour du paiement.',
+            ])
+            ->withInput();
+    }
 }
-
     /**
      * ✅ Frais filtrés par INSCRIPTION + ANNÉE
      */

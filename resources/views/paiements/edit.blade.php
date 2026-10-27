@@ -64,7 +64,20 @@
               class="row g-3">
 
             @csrf
-            @method('PUT')
+@method('PUT')
+
+{{-- Identifiants nécessaires à la modification --}}
+<input type="hidden"
+       name="inscription_id"
+       value="{{ old('inscription_id', $paiement->inscription_id) }}">
+
+<input type="hidden"
+       name="frais_id"
+       value="{{ old('frais_id', $paiement->frais_id) }}">
+
+<input type="hidden"
+       name="annee_id"
+       value="{{ old('annee_id', optional($paiement->inscription)->annee_id) }}">
 
             {{-- ============================= --}}
             {{-- INFORMATIONS NON MODIFIABLES --}}

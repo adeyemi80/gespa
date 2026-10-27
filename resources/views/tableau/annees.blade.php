@@ -119,13 +119,14 @@
         </div>
 
         {{-- 🟥 GROUPE 3 : FINANCES & GESTION --}}
-        <h6 class="section-title">💰 Finances </h6>
+        <h6 class="section-title">💰 PARENTS </h6>
         <div class="row g-3 mb-3">
 
             @php
                 $cards3 = [
-                    ['route'=>'paiements.create','color'=>'success','icon'=>'wallet2','title'=>'PAIEMENT'],
-                     ['route'=>'paiements.create-up','color'=>'success','icon'=>'wallet2','title'=>'PAIEMENTS'],
+                    ['route'=>'parens.create','color'=>'success','icon'=>'wallet2','title'=>'CREER UN PARENT'],
+                     ['route'=>'parens.import.form','color'=>'success','icon'=>'wallet2','title'=>'IMPORTATION DES PARENTS'],
+                    ['route'=>'parens.index','color'=>'success','icon'=>'wallet2','title'=>'LES PARENTS'],
                     
 
                      

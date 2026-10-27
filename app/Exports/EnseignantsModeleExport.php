@@ -16,7 +16,7 @@ class EnseignantsModeleExport implements WithHeadings, WithColumnWidths, WithCol
         return [
             'nom', 'prenom', 'date_naissance', 'sexe', 'adresse',
             'telephone', 'email', 'specialite',
-            'grade', 'date_embauche', 'statut', 'cycle', 'matieres', 'classes'
+            'grade', 'date_embauche', 'statut', 'cycle',
         ];
     }
 
@@ -54,8 +54,7 @@ public function columnFormats(): array
             'J' => 10, // date_embauche
             'K' => 15, // statut
             'L' => 15, // cycle
-            'M' => 15, // matiere
-            'N' => 15, // classeS
+            
             
             
         ];
